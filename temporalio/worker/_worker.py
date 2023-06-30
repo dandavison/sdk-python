@@ -178,6 +178,7 @@ class Worker:
                 the worker shutdown commences. This cannot stop the shutdown and
                 any exception raised is logged and ignored.
         """
+        logger.info("creating worker")
         if not activities and not workflows:
             raise ValueError("At least one activity or workflow must be specified")
 
@@ -379,6 +380,7 @@ class Worker:
         also cancel the shutdown process. Therefore users are encouraged to use
         explicit shutdown instead.
         """
+        logger.info("Worker.run")
         if self._started:
             raise RuntimeError("Already started")
         self._started = True

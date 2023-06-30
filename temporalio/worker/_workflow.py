@@ -118,7 +118,7 @@ class _WorkflowWorker:
         try:
             while True:
                 act = await self._bridge_worker().poll_workflow_activation()
-
+                logger.info(f"Got WorkflowActivation task: {act}")
                 # Schedule this as a task, but we don't need to track it or
                 # await it. Rather we'll give it an attribute and wait for it
                 # when done.

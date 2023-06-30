@@ -150,6 +150,7 @@ class _ActivityWorker:
                     poll_task.cancel()
                     await exception_task
                 task = await poll_task
+                logger.info(f"Got ActivityTask: {task}")
 
                 if task.HasField("start"):
                     # Cancelled event and sync field will be updated inside

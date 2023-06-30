@@ -107,7 +107,8 @@ impl WorkerRef {
                 Err(err) => return Err(PyRuntimeError::new_err(format!("Poll failure: {}", err))),
             };
             let bytes: &[u8] = &bytes;
-            Ok(Python::with_gil(|py| bytes.into_py(py)))
+            println!("Workflow activation:");
+            Ok(dbg!(Python::with_gil(|py| bytes.into_py(py))))
         })
     }
 
@@ -120,7 +121,8 @@ impl WorkerRef {
                 Err(err) => return Err(PyRuntimeError::new_err(format!("Poll failure: {}", err))),
             };
             let bytes: &[u8] = &bytes;
-            Ok(Python::with_gil(|py| bytes.into_py(py)))
+            println!("Activity task:");
+            Ok(dbg!(Python::with_gil(|py| bytes.into_py(py))))
         })
     }
 

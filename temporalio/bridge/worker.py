@@ -5,6 +5,7 @@ Nothing in this module should be considered stable. The API may change.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Awaitable, Callable, List, Optional, Sequence, Tuple
 
@@ -23,6 +24,8 @@ import temporalio.bridge.temporal_sdk_bridge
 import temporalio.converter
 import temporalio.exceptions
 from temporalio.bridge.temporal_sdk_bridge import PollShutdownError
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -83,6 +86,7 @@ class Worker:
         self,
     ) -> temporalio.bridge.proto.workflow_activation.WorkflowActivation:
         """Poll for a workflow activation."""
+        logging.info("poll_workflow_activation")
         return (
             temporalio.bridge.proto.workflow_activation.WorkflowActivation.FromString(
                 await self._ref.poll_workflow_activation()
@@ -93,6 +97,7 @@ class Worker:
         self,
     ) -> temporalio.bridge.proto.activity_task.ActivityTask:
         """Poll for an activity task."""
+        logging.info("poll_activity_task")
         return temporalio.bridge.proto.activity_task.ActivityTask.FromString(
             await self._ref.poll_activity_task()
         )
@@ -102,26 +107,31 @@ class Worker:
         comp: temporalio.bridge.proto.workflow_completion.WorkflowActivationCompletion,
     ) -> None:
         """Complete a workflow activation."""
+        logging.info("complete_workflow_activation")
         await self._ref.complete_workflow_activation(comp.SerializeToString())
 
     async def complete_activity_task(
         self, comp: temporalio.bridge.proto.ActivityTaskCompletion
     ) -> None:
         """Complete an activity task."""
+        logging.info("complete_activity_task")
         await self._ref.complete_activity_task(comp.SerializeToString())
 
     def record_activity_heartbeat(
         self, comp: temporalio.bridge.proto.ActivityHeartbeat
     ) -> None:
         """Record an activity heartbeat."""
+        logging.info("record_activity_heartbeat")
         self._ref.record_activity_heartbeat(comp.SerializeToString())
 
     def request_workflow_eviction(self, run_id: str) -> None:
         """Request a workflow be evicted."""
+        logging.info("request_workflow_eviction")
         self._ref.request_workflow_eviction(run_id)
 
     def initiate_shutdown(self) -> None:
         """Start shutdown of the worker."""
+        logger.info("initiate_shutdown")
         self._ref.initiate_shutdown()
 
     async def finalize_shutdown(self) -> None:
@@ -130,6 +140,7 @@ class Worker:
         This will fail if shutdown hasn't completed fully due to internal
         reference count checks.
         """
+        logger.info("finalize_shutdown")
         ref = self._ref
         self._ref = None
         await ref.finalize_shutdown()
