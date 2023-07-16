@@ -1184,7 +1184,7 @@ class _WorkflowInstanceImpl(
         if not payloads:
             return []
         # Only use type hints if they match count
-        if types and len(types) != len(payloads):
+        if types is not None and len(types) != len(payloads):
             types = None
         try:
             return self._payload_converter.from_payloads(
