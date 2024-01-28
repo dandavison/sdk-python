@@ -9,7 +9,9 @@ from pathlib import Path
 from typing import List, Mapping, Optional
 
 base_dir = Path(__file__).parent.parent
-proto_dir = base_dir / "temporalio" / "bridge" / "sdk-core" / "protos"
+proto_dir = (
+    base_dir / "temporalio" / "bridge" / "sdk-core" / "sdk-core-protos" / "protos"
+)
 api_proto_dir = proto_dir / "api_upstream"
 core_proto_dir = proto_dir / "local"
 testsrv_proto_dir = proto_dir / "testsrv_upstream"
