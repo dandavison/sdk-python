@@ -151,7 +151,13 @@ def generate_protos(output_dir: Path):
         shutil.rmtree(api_out_dir / p.name, ignore_errors=True)
         p.replace(api_out_dir / p.name)
     shutil.rmtree(api_out_dir / "dependencies", ignore_errors=True)
-    (output_dir / "dependencies").replace(api_out_dir / "dependencies")
+
+    dependencies_dir = output_dir / "dependencies"
+    if dependencies_dir.exists():
+        dependencies_dir.replace(api_out_dir / "dependencies")
+    else:
+        print("Warning: protoc did not create dependencies dir")
+
     for p in (output_dir / "temporal" / "sdk" / "core").iterdir():
         shutil.rmtree(sdk_out_dir / p.name, ignore_errors=True)
         p.replace(sdk_out_dir / p.name)
