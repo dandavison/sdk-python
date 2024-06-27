@@ -105,6 +105,7 @@ from temporalio.worker import (
     WorkflowRunner,
 )
 from tests.helpers import (
+    admitted_update_task,
     assert_eq_eventually,
     ensure_search_attributes_present,
     find_free_port,
@@ -5505,3 +5506,63 @@ class _UnfinishedHandlersWithCancellationOrFailureTest:
             "update": workflow.UnfinishedUpdateHandlersWarning,
             "signal": workflow.UnfinishedSignalHandlersWarning,
         }[self.handler_type]
+
+
+@activity.defn
+def noop_activity_for_lock_tests() -> None:
+    return None
+
+
+@workflow.defn
+class UsesLockWorkflow:
+    def __init__(self) -> None:
+        self.lock = asyncio.Lock()
+        self.updates_in_critical_section: set[str] = set()
+        self.workflow_may_exit = False
+
+    @workflow.run
+    async def run(self):
+        await workflow.wait_condition(lambda: self.workflow_may_exit)
+
+    @workflow.update
+    async def my_update(self):
+        async with self.lock:
+            assert not any(self.updates_in_critical_section)
+            assert (update_info := workflow.current_update_info())
+            self.updates_in_critical_section.add(update_info.id)
+            await workflow.execute_activity(
+                noop_activity_for_lock_tests,
+                schedule_to_close_timeout=timedelta(seconds=30),
+            )
+            self.updates_in_critical_section.remove(update_info.id)
+            assert not any(self.updates_in_critical_section)
+
+    @workflow.signal
+    async def finish(self):
+        self.workflow_may_exit = True
+
+
+async def test_update_handlers_can_use_lock_to_serialize_handler_executions(
+    client: Client, env: WorkflowEnvironment
+):
+    if env.supports_time_skipping:
+        pytest.skip(
+            "Java test server: https://github.com/temporalio/sdk-java/issues/1903"
+        )
+
+    task_queue = "tq"
+    handle = await client.start_workflow(
+        UsesLockWorkflow.run,
+        id=f"wf-{str(uuid.uuid4())}",
+        task_queue=task_queue,
+    )
+    update_1: asyncio.Task = await admitted_update_task(
+        client, handle, UsesLockWorkflow.my_update, id="update-1"
+    )
+    update_2 = await admitted_update_task(
+        client, handle, UsesLockWorkflow.my_update, id="update-2"
+    )
+    async with new_worker(client, UsesLockWorkflow, task_queue=task_queue):
+        await update_1
+        await update_2
+        await handle.signal(UsesLockWorkflow.finish)
