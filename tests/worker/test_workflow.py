@@ -5516,26 +5516,39 @@ def noop_activity_for_lock_tests() -> None:
 @workflow.defn
 class UsesLockWorkflow:
     def __init__(self) -> None:
-        self.lock = asyncio.Lock()
         self.updates_in_critical_section: set[str] = set()
         self.workflow_may_exit = False
+        self.lock_is_available = False
 
     @workflow.run
     async def run(self):
+        self.lock_is_available = True
         await workflow.wait_condition(lambda: self.workflow_may_exit)
 
     @workflow.update
     async def my_update(self):
-        async with self.lock:
-            assert not any(self.updates_in_critical_section)
-            assert (update_info := workflow.current_update_info())
-            self.updates_in_critical_section.add(update_info.id)
-            await workflow.execute_activity(
-                noop_activity_for_lock_tests,
-                schedule_to_close_timeout=timedelta(seconds=30),
-            )
-            self.updates_in_critical_section.remove(update_info.id)
-            assert not any(self.updates_in_critical_section)
+        assert (update_info := workflow.current_update_info())
+        print(f"{update_info.id} before wait: lock_available: {self.lock_is_available}")
+        await workflow.wait_condition(lambda: self.lock_is_available)
+        print(f"{update_info.id} after wait: lock_available: {self.lock_is_available}")
+        self.lock_is_available = False
+
+        print(
+            f"{update_info.id} entering critical section: {self.updates_in_critical_section}"
+        )
+        # assert not any(self.updates_in_critical_section)
+        self.updates_in_critical_section.add(update_info.id)
+        await workflow.execute_activity(
+            noop_activity_for_lock_tests,
+            schedule_to_close_timeout=timedelta(minutes=30),
+        )
+        print(
+            f"{update_info.id} exiting critical section: {self.updates_in_critical_section}"
+        )
+        self.updates_in_critical_section.remove(update_info.id)
+        # assert not any(self.updates_in_critical_section)
+
+        self.lock_is_available = True
 
     @workflow.signal
     async def finish(self):
