@@ -5579,3 +5579,31 @@ async def test_update_handlers_can_use_lock_to_serialize_handler_executions(
         await update_1
         await update_2
         await handle.signal(UsesLockWorkflow.finish)
+
+
+@workflow.defn
+class WaitForSharedMutableStateWorkflow:
+    def __init__(self) -> None:
+        self.cond = False
+
+    @workflow.run
+    async def run(self):
+        self.cond = True
+        await asyncio.gather(self.coro("1"), self.coro("2"))
+
+    async def coro(self, id: str):
+        await workflow.wait_condition(lambda: self.cond)
+        print(f"coro {id} after wait, sees {self.cond}")  # <== this can be False
+        assert self.cond
+        self.cond = False
+        await asyncio.sleep(1)
+        self.cond = True
+
+
+async def test_wait_for_shared_mutable_state(client: Client):
+    async with new_worker(client, WaitForSharedMutableStateWorkflow) as worker:
+        await client.execute_workflow(
+            WaitForSharedMutableStateWorkflow.run,
+            id=str(uuid.uuid4()),
+            task_queue=worker.task_queue,
+        )
