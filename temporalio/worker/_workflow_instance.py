@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import collections
 import contextvars
+import datetime
 import inspect
 import json
 import logging
@@ -307,6 +308,11 @@ class _WorkflowInstanceImpl(
     def activate(
         self, act: temporalio.bridge.proto.workflow_activation.WorkflowActivation
     ) -> temporalio.bridge.proto.workflow_completion.WorkflowActivationCompletion:
+        print(datetime.datetime.now())
+        jobs = [str(job).partition(" ")[0] for job in act.jobs]
+        print(
+            f"--------------------------------------- activate({jobs}) ----------------------------------"
+        )
         # Reset current completion, time, and whether replaying
         self._current_completion = (
             temporalio.bridge.proto.workflow_completion.WorkflowActivationCompletion()
@@ -419,6 +425,7 @@ class _WorkflowInstanceImpl(
     def _apply(
         self, job: temporalio.bridge.proto.workflow_activation.WorkflowActivationJob
     ) -> None:
+        print(f">>>>>>>>>>>> apply {job}")
         if job.HasField("cancel_workflow"):
             self._apply_cancel_workflow(job.cancel_workflow)
         elif job.HasField("do_update"):
