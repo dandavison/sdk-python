@@ -23,6 +23,7 @@ from typing import (
     FrozenSet,
     Generic,
     Iterable,
+    List,
     Mapping,
     Optional,
     Sequence,
@@ -64,6 +65,7 @@ from temporalio.service import (
 
 from .types import (
     AnyType,
+    ContinuationReturnType,
     LocalReturnType,
     MethodAsyncNoParam,
     MethodAsyncSingleParam,
@@ -286,6 +288,149 @@ class Client:
         self.service_client.config.api_key = value
         self.service_client.update_api_key(value)
 
+    # Overload for no-param workflow, multiop
+    @overload
+    async def start_workflow(
+        self,
+        workflow: MethodAsyncNoParam[SelfType, ReturnType],
+        *,
+        id: str,
+        task_queue: str,
+        continuation: Callable[
+            [WorkflowHandle[SelfType, ReturnType]],
+            Awaitable[ContinuationReturnType],
+        ],
+        execution_timeout: Optional[timedelta] = None,
+        run_timeout: Optional[timedelta] = None,
+        task_timeout: Optional[timedelta] = None,
+        id_reuse_policy: temporalio.common.WorkflowIDReusePolicy = temporalio.common.WorkflowIDReusePolicy.ALLOW_DUPLICATE,
+        id_conflict_policy: temporalio.common.WorkflowIDConflictPolicy = temporalio.common.WorkflowIDConflictPolicy.UNSPECIFIED,
+        retry_policy: Optional[temporalio.common.RetryPolicy] = None,
+        cron_schedule: str = "",
+        memo: Optional[Mapping[str, Any]] = None,
+        search_attributes: Optional[
+            Union[
+                temporalio.common.TypedSearchAttributes,
+                temporalio.common.SearchAttributes,
+            ]
+        ] = None,
+        start_delay: Optional[timedelta] = None,
+        start_signal: Optional[str] = None,
+        start_signal_args: Sequence[Any] = [],
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+        request_eager_start: bool = False,
+    ) -> ContinuationReturnType: ...
+
+    # Overload for single-param workflow, multiop
+    @overload
+    async def start_workflow(
+        self,
+        workflow: MethodAsyncSingleParam[SelfType, ParamType, ReturnType],
+        arg: ParamType,
+        *,
+        id: str,
+        task_queue: str,
+        continuation: Callable[
+            [WorkflowHandle[SelfType, ReturnType]],
+            Awaitable[ContinuationReturnType],
+        ],
+        execution_timeout: Optional[timedelta] = None,
+        run_timeout: Optional[timedelta] = None,
+        task_timeout: Optional[timedelta] = None,
+        id_reuse_policy: temporalio.common.WorkflowIDReusePolicy = temporalio.common.WorkflowIDReusePolicy.ALLOW_DUPLICATE,
+        id_conflict_policy: temporalio.common.WorkflowIDConflictPolicy = temporalio.common.WorkflowIDConflictPolicy.UNSPECIFIED,
+        retry_policy: Optional[temporalio.common.RetryPolicy] = None,
+        cron_schedule: str = "",
+        memo: Optional[Mapping[str, Any]] = None,
+        search_attributes: Optional[
+            Union[
+                temporalio.common.TypedSearchAttributes,
+                temporalio.common.SearchAttributes,
+            ]
+        ] = None,
+        start_delay: Optional[timedelta] = None,
+        start_signal: Optional[str] = None,
+        start_signal_args: Sequence[Any] = [],
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+        request_eager_start: bool = False,
+    ) -> ContinuationReturnType: ...
+
+    # Overload for multi-param workflow, multiop
+    @overload
+    async def start_workflow(
+        self,
+        workflow: Callable[
+            Concatenate[SelfType, MultiParamSpec], Awaitable[ReturnType]
+        ],
+        *,
+        args: Sequence[Any],
+        id: str,
+        task_queue: str,
+        continuation: Callable[
+            [WorkflowHandle[SelfType, ReturnType]],
+            Awaitable[ContinuationReturnType],
+        ],
+        execution_timeout: Optional[timedelta] = None,
+        run_timeout: Optional[timedelta] = None,
+        task_timeout: Optional[timedelta] = None,
+        id_reuse_policy: temporalio.common.WorkflowIDReusePolicy = temporalio.common.WorkflowIDReusePolicy.ALLOW_DUPLICATE,
+        id_conflict_policy: temporalio.common.WorkflowIDConflictPolicy = temporalio.common.WorkflowIDConflictPolicy.UNSPECIFIED,
+        retry_policy: Optional[temporalio.common.RetryPolicy] = None,
+        cron_schedule: str = "",
+        memo: Optional[Mapping[str, Any]] = None,
+        search_attributes: Optional[
+            Union[
+                temporalio.common.TypedSearchAttributes,
+                temporalio.common.SearchAttributes,
+            ]
+        ] = None,
+        start_delay: Optional[timedelta] = None,
+        start_signal: Optional[str] = None,
+        start_signal_args: Sequence[Any] = [],
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+        request_eager_start: bool = False,
+    ) -> ContinuationReturnType: ...
+
+    # Overload for string-name workflow, multiop
+    @overload
+    async def start_workflow(
+        self,
+        workflow: str,
+        arg: Any = temporalio.common._arg_unset,
+        *,
+        args: Sequence[Any] = [],
+        id: str,
+        task_queue: str,
+        continuation: Callable[
+            [WorkflowHandle[SelfType, ReturnType]],
+            Awaitable[ContinuationReturnType],
+        ],
+        result_type: Optional[Type] = None,
+        execution_timeout: Optional[timedelta] = None,
+        run_timeout: Optional[timedelta] = None,
+        task_timeout: Optional[timedelta] = None,
+        id_reuse_policy: temporalio.common.WorkflowIDReusePolicy = temporalio.common.WorkflowIDReusePolicy.ALLOW_DUPLICATE,
+        id_conflict_policy: temporalio.common.WorkflowIDConflictPolicy = temporalio.common.WorkflowIDConflictPolicy.UNSPECIFIED,
+        retry_policy: Optional[temporalio.common.RetryPolicy] = None,
+        cron_schedule: str = "",
+        memo: Optional[Mapping[str, Any]] = None,
+        search_attributes: Optional[
+            Union[
+                temporalio.common.TypedSearchAttributes,
+                temporalio.common.SearchAttributes,
+            ]
+        ] = None,
+        start_delay: Optional[timedelta] = None,
+        start_signal: Optional[str] = None,
+        start_signal_args: Sequence[Any] = [],
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+        request_eager_start: bool = False,
+    ) -> ContinuationReturnType: ...
+
     # Overload for no-param workflow
     @overload
     async def start_workflow(
@@ -421,6 +566,12 @@ class Client:
         args: Sequence[Any] = [],
         id: str,
         task_queue: str,
+        continuation: Optional[
+            Callable[
+                [WorkflowHandle[SelfType, ReturnType]],
+                Awaitable[ContinuationReturnType],
+            ]
+        ] = None,
         result_type: Optional[Type] = None,
         execution_timeout: Optional[timedelta] = None,
         run_timeout: Optional[timedelta] = None,
@@ -443,7 +594,10 @@ class Client:
         rpc_timeout: Optional[timedelta] = None,
         request_eager_start: bool = False,
         stack_level: int = 2,
-    ) -> WorkflowHandle[Any, Any]:
+    ) -> Union[
+        WorkflowHandle[Any, Any],
+        ContinuationReturnType,
+    ]:
         """Start a workflow and return its handle.
 
         Args:
@@ -453,6 +607,12 @@ class Client:
             args: Multiple arguments to the workflow. Cannot be set if arg is.
             id: Unique identifier for the workflow execution.
             task_queue: Task queue to run the workflow on.
+            continuation: Return the result of calling the supplied ``continuation``
+                function. This must be an async def function that accepts a WorkflowHandle
+                as its only parameter. It should return the result of calling
+                execute_update() on the handle. The resulting update will be issued together
+                with the start_workflow request using the MultiOp gRPC API. This is sometimes
+                referred to as "Update-With-Start".
             result_type: For string workflows, this can set the specific result
                 type hint to deserialize into.
             execution_timeout: Total workflow execution timeout including
@@ -1151,6 +1311,7 @@ class WorkflowHandle(Generic[SelfType, ReturnType]):
         result_run_id: Optional[str] = None,
         first_execution_run_id: Optional[str] = None,
         result_type: Optional[Type] = None,
+        start_workflow_input: Optional["StartWorkflowInput"] = None,
     ) -> None:
         """Create workflow handle."""
         self._client = client
@@ -1160,6 +1321,7 @@ class WorkflowHandle(Generic[SelfType, ReturnType]):
         self._first_execution_run_id = first_execution_run_id
         self._result_type = result_type
         self.__temporal_eagerly_started = False
+        self.start_workflow_input = start_workflow_input
 
     @property
     def id(self) -> str:
@@ -2022,6 +2184,7 @@ class WorkflowHandle(Generic[SelfType, ReturnType]):
                 rpc_metadata=rpc_metadata,
                 rpc_timeout=rpc_timeout,
                 wait_for_stage=wait_for_stage,
+                start_workflow_input=self.start_workflow_input,
             )
         )
 
@@ -4526,6 +4689,7 @@ class StartWorkflowInput:
     rpc_metadata: Mapping[str, str]
     rpc_timeout: Optional[timedelta]
     request_eager_start: bool
+    continuation: Optional[Callable[[WorkflowHandle[Any, Any]], Any]] = None
 
 
 @dataclass
@@ -4640,6 +4804,7 @@ class StartWorkflowUpdateInput:
     ret_type: Optional[Type]
     rpc_metadata: Mapping[str, str]
     rpc_timeout: Optional[timedelta]
+    start_workflow_input: Optional[StartWorkflowInput]
 
 
 @dataclass
@@ -5021,6 +5186,15 @@ class _ClientImpl(OutboundInterceptor):
                     timeout=input.rpc_timeout,
                 )
             else:
+                if input.continuation:
+                    return await input.continuation(
+                        WorkflowHandle(
+                            self._client,
+                            req.workflow_id,
+                            result_type=input.ret_type,
+                            start_workflow_input=input,
+                        )
+                    )
                 resp = await self._client.workflow_service.start_workflow_execution(
                     req,
                     retry=True,
@@ -5277,6 +5451,8 @@ class _ClientImpl(OutboundInterceptor):
     async def start_workflow_update(
         self, input: StartWorkflowUpdateInput
     ) -> WorkflowUpdateHandle[Any]:
+        if input.start_workflow_input:
+            return await self.start_workflow_update_as_multiop(input)
         req = await self._build_update_workflow_execution_request(input)
         # Repeatedly try to invoke start until the update reaches user-provided
         # wait stage or is at least ACCEPTED (as of the time of this writing,
@@ -5355,6 +5531,56 @@ class _ClientImpl(OutboundInterceptor):
                 input.headers, req.request.input.header.fields
             )
         return req
+
+    async def start_workflow_update_as_multiop(
+        self, input: StartWorkflowUpdateInput
+    ) -> WorkflowUpdateHandle[Any]:
+        assert input.start_workflow_input
+        start_req = await self._build_start_workflow_execution_request(
+            input.start_workflow_input
+        )
+        update_req = await self._build_update_workflow_execution_request(input)
+        multiop_req = temporalio.api.workflowservice.v1.ExecuteMultiOperationRequest(
+            namespace=self._client.namespace,
+            operations=[
+                temporalio.api.workflowservice.v1.ExecuteMultiOperationRequest.Operation(
+                    start_workflow=start_req
+                ),
+                temporalio.api.workflowservice.v1.ExecuteMultiOperationRequest.Operation(
+                    update_workflow=update_req
+                ),
+            ],
+        )
+        multiop_response = await self._client.workflow_service.execute_multi_operation(
+            multiop_req
+        )
+        start_responses: List[
+            temporalio.api.workflowservice.v1.StartWorkflowExecutionResponse
+        ] = [
+            r.start_workflow
+            for r in multiop_response.responses
+            if r.HasField("start_workflow")
+        ]
+        update_responses: List[
+            temporalio.api.workflowservice.v1.UpdateWorkflowExecutionResponse
+        ] = [
+            r.update_workflow
+            for r in multiop_response.responses
+            if r.HasField("update_workflow")
+        ]
+        if not (len(start_responses) == 1 and len(update_responses) == 1):
+            raise RuntimeError("Invalid ExecuteMultiOperationResponse")
+        [start_response] = start_responses
+        [update_response] = update_responses
+        if update_response.HasField("outcome"):
+            # TODO: ensure known outcome is cached locally
+            pass
+        return WorkflowUpdateHandle(
+            client=self._client,
+            id=update_req.request.meta.update_id,
+            workflow_id=input.start_workflow_input.id,
+            workflow_run_id=start_response.run_id,
+        )
 
     ### Async activity calls
 
