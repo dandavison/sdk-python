@@ -5010,68 +5010,18 @@ class _ClientImpl(OutboundInterceptor):
     async def start_workflow(
         self, input: StartWorkflowInput
     ) -> WorkflowHandle[Any, Any]:
-        # Build request
         req: Union[
             temporalio.api.workflowservice.v1.StartWorkflowExecutionRequest,
             temporalio.api.workflowservice.v1.SignalWithStartWorkflowExecutionRequest,
         ]
         if input.start_signal is not None:
-            req = temporalio.api.workflowservice.v1.SignalWithStartWorkflowExecutionRequest(
-                signal_name=input.start_signal
-            )
-            if input.start_signal_args:
-                req.signal_input.payloads.extend(
-                    await self._client.data_converter.encode(input.start_signal_args)
-                )
+            req = await self._build_signal_with_start_workflow_execution_request(input)
         else:
-            req = temporalio.api.workflowservice.v1.StartWorkflowExecutionRequest()
-            req.request_eager_execution = input.request_eager_start
+            req = await self._build_start_workflow_execution_request(input)
 
-        req.namespace = self._client.namespace
-        req.workflow_id = input.id
-        req.workflow_type.name = input.workflow
-        req.task_queue.name = input.task_queue
-        if input.args:
-            req.input.payloads.extend(
-                await self._client.data_converter.encode(input.args)
-            )
-        if input.execution_timeout is not None:
-            req.workflow_execution_timeout.FromTimedelta(input.execution_timeout)
-        if input.run_timeout is not None:
-            req.workflow_run_timeout.FromTimedelta(input.run_timeout)
-        if input.task_timeout is not None:
-            req.workflow_task_timeout.FromTimedelta(input.task_timeout)
-        req.identity = self._client.identity
-        req.request_id = str(uuid.uuid4())
-        req.workflow_id_reuse_policy = cast(
-            "temporalio.api.enums.v1.WorkflowIdReusePolicy.ValueType",
-            int(input.id_reuse_policy),
-        )
-        req.workflow_id_conflict_policy = cast(
-            "temporalio.api.enums.v1.WorkflowIdConflictPolicy.ValueType",
-            int(input.id_conflict_policy),
-        )
-        if input.retry_policy is not None:
-            input.retry_policy.apply_to_proto(req.retry_policy)
-        req.cron_schedule = input.cron_schedule
-        if input.memo is not None:
-            for k, v in input.memo.items():
-                req.memo.fields[k].CopyFrom(
-                    (await self._client.data_converter.encode([v]))[0]
-                )
-        if input.search_attributes is not None:
-            temporalio.converter.encode_search_attributes(
-                input.search_attributes, req.search_attributes
-            )
-        if input.start_delay is not None:
-            req.workflow_start_delay.FromTimedelta(input.start_delay)
-        if input.headers is not None:
-            temporalio.common._apply_headers(input.headers, req.header.fields)
-
-        # Start with signal or just normal start
         resp: Union[
-            temporalio.api.workflowservice.v1.SignalWithStartWorkflowExecutionResponse,
             temporalio.api.workflowservice.v1.StartWorkflowExecutionResponse,
+            temporalio.api.workflowservice.v1.SignalWithStartWorkflowExecutionResponse,
         ]
         first_execution_run_id = None
         eagerly_started = False
@@ -5114,6 +5064,81 @@ class _ClientImpl(OutboundInterceptor):
         )
         setattr(handle, "__temporal_eagerly_started", eagerly_started)
         return handle
+
+    async def _build_start_workflow_execution_request(
+        self, input: StartWorkflowInput
+    ) -> temporalio.api.workflowservice.v1.StartWorkflowExecutionRequest:
+        req = temporalio.api.workflowservice.v1.StartWorkflowExecutionRequest()
+        req.request_eager_execution = input.request_eager_start
+        await self._populate_start_or_signal_with_start_workflow_execution_request(
+            req, input
+        )
+        return req
+
+    async def _build_signal_with_start_workflow_execution_request(
+        self, input: StartWorkflowInput
+    ) -> temporalio.api.workflowservice.v1.SignalWithStartWorkflowExecutionRequest:
+        assert input.start_signal
+        req = temporalio.api.workflowservice.v1.SignalWithStartWorkflowExecutionRequest(
+            signal_name=input.start_signal
+        )
+        if input.start_signal_args:
+            req.signal_input.payloads.extend(
+                await self._client.data_converter.encode(input.start_signal_args)
+            )
+        await self._populate_start_or_signal_with_start_workflow_execution_request(
+            req, input
+        )
+        return req
+
+    async def _populate_start_or_signal_with_start_workflow_execution_request(
+        self,
+        req: Union[
+            temporalio.api.workflowservice.v1.StartWorkflowExecutionRequest,
+            temporalio.api.workflowservice.v1.SignalWithStartWorkflowExecutionRequest,
+        ],
+        input: StartWorkflowInput,
+    ) -> None:
+        req.namespace = self._client.namespace
+        req.workflow_id = input.id
+        req.workflow_type.name = input.workflow
+        req.task_queue.name = input.task_queue
+        if input.args:
+            req.input.payloads.extend(
+                await self._client.data_converter.encode(input.args)
+            )
+        if input.execution_timeout is not None:
+            req.workflow_execution_timeout.FromTimedelta(input.execution_timeout)
+        if input.run_timeout is not None:
+            req.workflow_run_timeout.FromTimedelta(input.run_timeout)
+        if input.task_timeout is not None:
+            req.workflow_task_timeout.FromTimedelta(input.task_timeout)
+        req.identity = self._client.identity
+        req.request_id = str(uuid.uuid4())
+        req.workflow_id_reuse_policy = cast(
+            "temporalio.api.enums.v1.WorkflowIdReusePolicy.ValueType",
+            int(input.id_reuse_policy),
+        )
+        req.workflow_id_conflict_policy = cast(
+            "temporalio.api.enums.v1.WorkflowIdConflictPolicy.ValueType",
+            int(input.id_conflict_policy),
+        )
+        if input.retry_policy is not None:
+            input.retry_policy.apply_to_proto(req.retry_policy)
+        req.cron_schedule = input.cron_schedule
+        if input.memo is not None:
+            for k, v in input.memo.items():
+                req.memo.fields[k].CopyFrom(
+                    (await self._client.data_converter.encode([v]))[0]
+                )
+        if input.search_attributes is not None:
+            temporalio.converter.encode_search_attributes(
+                input.search_attributes, req.search_attributes
+            )
+        if input.start_delay is not None:
+            req.workflow_start_delay.FromTimedelta(input.start_delay)
+        if input.headers is not None:
+            temporalio.common._apply_headers(input.headers, req.header.fields)
 
     async def cancel_workflow(self, input: CancelWorkflowInput) -> None:
         await self._client.workflow_service.request_cancel_workflow_execution(
@@ -5268,37 +5293,7 @@ class _ClientImpl(OutboundInterceptor):
     async def start_workflow_update(
         self, input: StartWorkflowUpdateInput
     ) -> WorkflowUpdateHandle[Any]:
-        # Build request
-        req = temporalio.api.workflowservice.v1.UpdateWorkflowExecutionRequest(
-            namespace=self._client.namespace,
-            workflow_execution=temporalio.api.common.v1.WorkflowExecution(
-                workflow_id=input.id,
-                run_id=input.run_id or "",
-            ),
-            request=temporalio.api.update.v1.Request(
-                meta=temporalio.api.update.v1.Meta(
-                    update_id=input.update_id or str(uuid.uuid4()),
-                    identity=self._client.identity,
-                ),
-                input=temporalio.api.update.v1.Input(
-                    name=input.update,
-                ),
-            ),
-            wait_policy=temporalio.api.update.v1.WaitPolicy(
-                lifecycle_stage=temporalio.api.enums.v1.UpdateWorkflowExecutionLifecycleStage.ValueType(
-                    input.wait_for_stage
-                )
-            ),
-        )
-        if input.args:
-            req.request.input.args.payloads.extend(
-                await self._client.data_converter.encode(input.args)
-            )
-        if input.headers is not None:
-            temporalio.common._apply_headers(
-                input.headers, req.request.input.header.fields
-            )
-
+        req = await self._build_update_workflow_execution_request(input)
         # Repeatedly try to invoke start until the update reaches user-provided
         # wait stage or is at least ACCEPTED (as of the time of this writing,
         # the user cannot specify sooner than ACCEPTED)
@@ -5342,6 +5337,40 @@ class _ClientImpl(OutboundInterceptor):
         if input.wait_for_stage == WorkflowUpdateStage.COMPLETED:
             await handle._poll_until_outcome()
         return handle
+
+    async def _build_update_workflow_execution_request(
+        self, input: StartWorkflowUpdateInput
+    ) -> temporalio.api.workflowservice.v1.UpdateWorkflowExecutionRequest:
+        req = temporalio.api.workflowservice.v1.UpdateWorkflowExecutionRequest(
+            namespace=self._client.namespace,
+            workflow_execution=temporalio.api.common.v1.WorkflowExecution(
+                workflow_id=input.id,
+                run_id=input.run_id or "",
+            ),
+            request=temporalio.api.update.v1.Request(
+                meta=temporalio.api.update.v1.Meta(
+                    update_id=input.update_id or str(uuid.uuid4()),
+                    identity=self._client.identity,
+                ),
+                input=temporalio.api.update.v1.Input(
+                    name=input.update,
+                ),
+            ),
+            wait_policy=temporalio.api.update.v1.WaitPolicy(
+                lifecycle_stage=temporalio.api.enums.v1.UpdateWorkflowExecutionLifecycleStage.ValueType(
+                    input.wait_for_stage
+                )
+            ),
+        )
+        if input.args:
+            req.request.input.args.payloads.extend(
+                await self._client.data_converter.encode(input.args)
+            )
+        if input.headers is not None:
+            temporalio.common._apply_headers(
+                input.headers, req.request.input.header.fields
+            )
+        return req
 
     ### Async activity calls
 
