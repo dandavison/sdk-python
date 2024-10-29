@@ -23,6 +23,7 @@ from typing import (
     FrozenSet,
     Generic,
     Iterable,
+    List,
     Mapping,
     Optional,
     Sequence,
@@ -1151,6 +1152,7 @@ class WorkflowHandle(Generic[SelfType, ReturnType]):
         result_run_id: Optional[str] = None,
         first_execution_run_id: Optional[str] = None,
         result_type: Optional[Type] = None,
+        start_workflow_input: Optional["StartWorkflowInput"] = None,
     ) -> None:
         """Create workflow handle."""
         self._client = client
@@ -1160,6 +1162,7 @@ class WorkflowHandle(Generic[SelfType, ReturnType]):
         self._first_execution_run_id = first_execution_run_id
         self._result_type = result_type
         self.__temporal_eagerly_started = False
+        self.start_workflow_input = start_workflow_input
 
     @property
     def id(self) -> str:
@@ -2022,6 +2025,7 @@ class WorkflowHandle(Generic[SelfType, ReturnType]):
                 rpc_metadata=rpc_metadata,
                 rpc_timeout=rpc_timeout,
                 wait_for_stage=wait_for_stage,
+                start_workflow_input=self.start_workflow_input,
             )
         )
 
@@ -4640,6 +4644,7 @@ class StartWorkflowUpdateInput:
     ret_type: Optional[Type]
     rpc_metadata: Mapping[str, str]
     rpc_timeout: Optional[timedelta]
+    start_workflow_input: Optional[StartWorkflowInput]
 
 
 @dataclass
@@ -5277,6 +5282,8 @@ class _ClientImpl(OutboundInterceptor):
     async def start_workflow_update(
         self, input: StartWorkflowUpdateInput
     ) -> WorkflowUpdateHandle[Any]:
+        if input.start_workflow_input:
+            return await self.start_workflow_update_as_multiop(input)
         req = await self._build_update_workflow_execution_request(input)
         # Repeatedly try to invoke start until the update reaches user-provided
         # wait stage or is at least ACCEPTED (as of the time of this writing,
@@ -5355,6 +5362,56 @@ class _ClientImpl(OutboundInterceptor):
                 input.headers, req.request.input.header.fields
             )
         return req
+
+    async def start_workflow_update_as_multiop(
+        self, input: StartWorkflowUpdateInput
+    ) -> WorkflowUpdateHandle[Any]:
+        assert input.start_workflow_input
+        start_req = await self._build_start_workflow_execution_request(
+            input.start_workflow_input
+        )
+        update_req = await self._build_update_workflow_execution_request(input)
+        multiop_req = temporalio.api.workflowservice.v1.ExecuteMultiOperationRequest(
+            namespace=self._client.namespace,
+            operations=[
+                temporalio.api.workflowservice.v1.ExecuteMultiOperationRequest.Operation(
+                    start_workflow=start_req
+                ),
+                temporalio.api.workflowservice.v1.ExecuteMultiOperationRequest.Operation(
+                    update_workflow=update_req
+                ),
+            ],
+        )
+        multiop_response = await self._client.workflow_service.execute_multi_operation(
+            multiop_req
+        )
+        start_responses: List[
+            temporalio.api.workflowservice.v1.StartWorkflowExecutionResponse
+        ] = [
+            r.start_workflow
+            for r in multiop_response.responses
+            if r.HasField("start_workflow")
+        ]
+        update_responses: List[
+            temporalio.api.workflowservice.v1.UpdateWorkflowExecutionResponse
+        ] = [
+            r.update_workflow
+            for r in multiop_response.responses
+            if r.HasField("update_workflow")
+        ]
+        if not (len(start_responses) == 1 and len(update_responses) == 1):
+            raise RuntimeError("Invalid ExecuteMultiOperationResponse")
+        [start_response] = start_responses
+        [update_response] = update_responses
+        if update_response.HasField("outcome"):
+            # TODO: ensure known outcome is cached locally
+            pass
+        return WorkflowUpdateHandle(
+            client=self._client,
+            id=update_req.request.meta.update_id,
+            workflow_id=input.start_workflow_input.id,
+            workflow_run_id=start_response.run_id,
+        )
 
     ### Async activity calls
 
