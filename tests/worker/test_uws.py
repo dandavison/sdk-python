@@ -38,22 +38,22 @@ class WorkflowForUpdateWithStartTest:
         self.may_exit = False
 
     @workflow.run
-    async def run(self) -> str:
+    async def run(self, i: int) -> str:
         await workflow.wait_condition(lambda: self.update_finished and self.may_exit)
-        return "workflow-result"
+        return f"workflow-result-{i}"
 
     @workflow.update
-    def my_non_blocking_update(self) -> str:
+    def my_non_blocking_update(self, i: int) -> str:
         self.update_finished = True
-        return "update-result"
+        return f"update-result-{i}"
 
     @workflow.update
-    async def my_blocking_update(self) -> str:
+    async def my_blocking_update(self, i: int) -> str:
         await workflow.execute_activity(
             activity_called_by_update, start_to_close_timeout=timedelta(seconds=10)
         )
         self.update_finished = True
-        return "update-result"
+        return f"update-result-{i}"
 
     @workflow.signal
     async def done(self):
@@ -184,29 +184,35 @@ class TestUpdateWithStart:
             self.task_queue = worker.task_queue
 
             # First UWS succeeds
-            with_start_1 = client.with_start_workflow(
+            with_start_handle_1 = client.with_start_workflow(
                 WorkflowForUpdateWithStartTest.run,
+                1,
                 id=self.workflow_id,
                 task_queue=self.task_queue,
                 id_conflict_policy=id_conflict_policy,
             )
 
-            assert await with_start_1.execute_update(update_handler) == "update-result"
+            assert (
+                await with_start_handle_1.execute_update(update_handler, 1)
+                == "update-result-1"
+            )
 
             # Whether a repeat UWS succeeds depends on the workflow ID conflict policy
             with_start_2 = client.with_start_workflow(
                 WorkflowForUpdateWithStartTest.run,
+                2,
                 id=self.workflow_id,
                 task_queue=self.task_queue,
                 id_conflict_policy=id_conflict_policy,
             )
             if expect_error_when_workflow_exists == ExpectErrorWhenWorkflowExists.NO:
                 assert (
-                    await with_start_2.execute_update(update_handler) == "update-result"
+                    await with_start_2.execute_update(update_handler, 2)
+                    == "update-result-2"
                 )
             else:
                 with pytest.raises(RPCError) as e:
-                    await with_start_2.execute_update(update_handler)
+                    await with_start_2.execute_update(update_handler, 2)
                 assert e.value.grpc_status.details[0].Is(
                     temporalio.api.errordetails.v1.MultiOperationExecutionFailure.DESCRIPTOR
                 )
@@ -216,11 +222,11 @@ class TestUpdateWithStart:
             # TODO: add get_workflow_handle method to WithStartWorkflowHandle? That means making it
             # into a concrete class; perhaps use an Updateable interface to share code with
             # WorkflowHandle.
-            wf_handle = cast(
-                WorkflowHandle[WorkflowForUpdateWithStartTest, str], with_start_1
+            wf_handle_1 = cast(
+                WorkflowHandle[WorkflowForUpdateWithStartTest, str], with_start_handle_1
             )
-            await wf_handle.signal(WorkflowForUpdateWithStartTest.done)
-            assert await wf_handle.result() == "workflow-result"
+            await wf_handle_1.signal(WorkflowForUpdateWithStartTest.done)
+            assert await wf_handle_1.result() == "workflow-result-1"
 
     async def _do_start_update_test(
         self,
@@ -245,20 +251,21 @@ class TestUpdateWithStart:
             self.workflow_id = workflow_id
             self.task_queue = worker.task_queue
 
-            with_start = client.with_start_workflow(
+            with_start_handle_1 = client.with_start_workflow(
                 WorkflowForUpdateWithStartTest.run,
+                1,
                 id=self.workflow_id,
                 task_queue=self.task_queue,
                 id_conflict_policy=id_conflict_policy,
             )
 
-            update_handle = await with_start.start_update(
-                update_handler, wait_for_stage=wait_for_stage
+            update_handle_1 = await with_start_handle_1.start_update(
+                update_handler, 1, wait_for_stage=wait_for_stage
             )
             with self.assert_network_call(
                 expect_update_result_in_response == ExpectUpdateResultInResponse.NO
             ):
-                assert await update_handle.result() == "update-result"
+                assert await update_handle_1.result() == "update-result-1"
 
     @contextmanager
     def assert_network_call(
