@@ -198,7 +198,7 @@ class TestUpdateWithStart:
             )
 
             # Whether a repeat UWS succeeds depends on the workflow ID conflict policy
-            with_start_2 = client.with_start_workflow(
+            with_start_handle_2 = client.with_start_workflow(
                 WorkflowForUpdateWithStartTest.run,
                 2,
                 id=self.workflow_id,
@@ -207,12 +207,18 @@ class TestUpdateWithStart:
             )
             if expect_error_when_workflow_exists == ExpectErrorWhenWorkflowExists.NO:
                 assert (
-                    await with_start_2.execute_update(update_handler, 2)
-                    == "update-result-2"
+                    await with_start_handle_1.execute_update(update_handler, 12)
+                    == "update-result-12"
+                )
+                assert (
+                    await with_start_handle_2.execute_update(update_handler, 21)
+                    == "update-result-21"
                 )
             else:
                 with pytest.raises(RPCError) as e:
-                    await with_start_2.execute_update(update_handler, 2)
+                    await with_start_handle_1.execute_update(update_handler, 12)
+                with pytest.raises(RPCError) as e:
+                    await with_start_handle_2.execute_update(update_handler, 21)
                 assert e.value.grpc_status.details[0].Is(
                     temporalio.api.errordetails.v1.MultiOperationExecutionFailure.DESCRIPTOR
                 )
