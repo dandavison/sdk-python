@@ -26,7 +26,6 @@ from typing import (
     List,
     Mapping,
     Optional,
-    Protocol,
     Sequence,
     Type,
     Union,
@@ -743,12 +742,9 @@ class Client:
             request_eager_start=request_eager_start,
         )
 
-        return WorkflowHandle(
+        return WithStartWorkflowHandle(
             self,
             id,
-            result_run_id=None,
-            first_execution_run_id=None,
-            result_type=result_type,
             start_workflow_input=input,
         )
 
@@ -2308,21 +2304,49 @@ class WorkflowHandle(Generic[SelfType, ReturnType]):
         )
 
 
-class WithStartWorkflowHandle(Protocol[SelfType, ReturnType]):
+class WithStartWorkflowHandle(Generic[SelfType, ReturnType]):
     """
     Handle for issuing Update-With-Start requests. Usually created by
     :py:meth:`Client.with_start_workflow`.
     """
 
-    # TODO: an update issued on this handle should set runID on the handle and this should be set
-    # as first_execution_run_id in the handle returned by get_workflow_handle.
+    # TODO: perhaps use an Updateable interface to share code with WorkflowHandle?
 
-    # TODO: I am tentatively proposing that we do not expose result() directly on
-    # WithStartWorkflowHandle, since users are expected to use it to call execute_update (or
-    # perhaps start_update). Instead they can obtain a WorkflowHandle via the following method.
-    # That means making it into a concrete class; perhaps use an Updateable interface to share code
-    # with WorkflowHandle. def get_workflow_handle(self) -> WorkflowHandle[SelfType, ReturnType]:
-    #     return cast(WorkflowHandle[SelfType, ReturnType], self)
+    def __init__(
+        self,
+        client: Client,
+        id: str,
+        *,
+        start_workflow_input: Optional["StartWorkflowInput"] = None,
+    ) -> None:
+        """Create workflow handle."""
+        self._client = client
+        self._id = id
+        self._first_execution_run_id = None
+        self._start_workflow_input = start_workflow_input
+        # TODO: any of these needed here?
+        # self._run_id = None
+        # self._result_run_id = None
+        # self._result_type = None
+        # self.__temporal_eagerly_started = False
+
+    def get_workflow_handle(self) -> WorkflowHandle[SelfType, ReturnType]:
+        if not self._first_execution_run_id:
+            raise ValueError(
+                "Workflow not known to have been started: "
+                "To send an update-with-start request, use WithStartWorkflowHandle.execute_update "
+                "or WithStartWorkflowHandle.start_update. "
+                "Otherwise, use Client.get_workflow_handle_for to obtain a WorkflowHandle."
+            )
+        return self._get_workflow_handle()
+
+    def _get_workflow_handle(self) -> WorkflowHandle[SelfType, ReturnType]:
+        return WorkflowHandle(
+            self._client,
+            self._id,
+            first_execution_run_id=self._first_execution_run_id,
+            start_workflow_input=self._start_workflow_input,
+        )
 
     # TODO: the execute_update and start_update overloads are identical to those on WorkflowHandle.
     # Consider sharing code, e.g. via an "Updateable" interface.
@@ -2380,6 +2404,30 @@ class WithStartWorkflowHandle(Protocol[SelfType, ReturnType]):
         rpc_timeout: Optional[timedelta] = None,
     ) -> Any: ...
 
+    async def execute_update(
+        self,
+        update: Union[str, Callable],
+        arg: Any = temporalio.common._arg_unset,
+        *,
+        args: Sequence[Any] = [],
+        id: Optional[str] = None,
+        result_type: Optional[Type] = None,
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+    ) -> Any:
+        # TODO: type
+        handle = await self.start_update(
+            update,  # type: ignore
+            arg,
+            args=args,
+            wait_for_stage=WorkflowUpdateStage.COMPLETED,
+            id=id,
+            result_type=result_type,
+            rpc_metadata=rpc_metadata,
+            rpc_timeout=rpc_timeout,
+        )
+        return await handle.result()
+
     # Overload for no-param start update
     @overload
     async def start_update(
@@ -2436,6 +2484,32 @@ class WithStartWorkflowHandle(Protocol[SelfType, ReturnType]):
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
     ) -> WorkflowUpdateHandle[Any]: ...
+
+    async def start_update(
+        self,
+        update: Union[str, Callable],
+        arg: Any = temporalio.common._arg_unset,
+        *,
+        wait_for_stage: WorkflowUpdateStage,
+        args: Sequence[Any] = [],
+        id: Optional[str] = None,
+        result_type: Optional[Type] = None,
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+    ) -> WorkflowUpdateHandle[Any]:
+        # TODO: type
+        update_handle = await self._get_workflow_handle().start_update(
+            update,  # type: ignore
+            arg,
+            wait_for_stage=wait_for_stage,
+            args=args,
+            id=id,
+            result_type=result_type,
+            rpc_metadata=rpc_metadata,
+            rpc_timeout=rpc_timeout,
+        )
+        self._first_execution_run_id = update_handle.workflow_run_id
+        return update_handle
 
 
 @dataclass(frozen=True)

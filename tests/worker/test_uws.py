@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from datetime import timedelta
 from enum import Enum
-from typing import Iterator, cast
+from typing import Iterator
 from unittest.mock import patch
 
 import pytest
@@ -14,7 +14,6 @@ from temporalio import activity, workflow
 from temporalio.client import (
     Client,
     RPCError,
-    WorkflowHandle,
     WorkflowUpdateStage,
 )
 from temporalio.common import (
@@ -225,12 +224,7 @@ class TestUpdateWithStart:
 
             # The workflow is still running; finish it.
 
-            # TODO: add get_workflow_handle method to WithStartWorkflowHandle? That means making it
-            # into a concrete class; perhaps use an Updateable interface to share code with
-            # WorkflowHandle.
-            wf_handle_1 = cast(
-                WorkflowHandle[WorkflowForUpdateWithStartTest, str], with_start_handle_1
-            )
+            wf_handle_1 = with_start_handle_1.get_workflow_handle()
             await wf_handle_1.signal(WorkflowForUpdateWithStartTest.done)
             assert await wf_handle_1.result() == "workflow-result-1"
 
