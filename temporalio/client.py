@@ -1352,136 +1352,6 @@ class WorkflowHistoryEventFilterType(IntEnum):
     )
 
 
-class WithStartWorkflowHandle(Protocol[SelfType, ReturnType]):
-    """
-    Handle for issuing Update-With-Start requests. Usually created by
-    :py:meth:`Client.with_start_workflow`.
-    """
-
-    # TODO: an update issued on this handle should set runID on the handle and this should be set
-    # as first_execution_run_id in the handle returned by get_workflow_handle.
-
-    # TODO: I am tentatively proposing that we do not expose result() directly on
-    # WithStartWorkflowHandle, since users are expected to use it to call execute_update (or
-    # perhaps start_update). Instead they can obtain a WorkflowHandle via the following method.
-    # That means making it into a concrete class; perhaps use an Updateable interface to share code
-    # with WorkflowHandle. def get_workflow_handle(self) -> WorkflowHandle[SelfType, ReturnType]:
-    #     return cast(WorkflowHandle[SelfType, ReturnType], self)
-
-    # TODO: the execute_update and start_update overloads are identical to those on WorkflowHandle.
-    # Consider sharing code, e.g. via an "Updateable" interface.
-
-    # Overload for no-param update
-    @overload
-    async def execute_update(
-        self,
-        update: temporalio.workflow.UpdateMethodMultiParam[[SelfType], LocalReturnType],
-        *,
-        id: Optional[str] = None,
-        rpc_metadata: Mapping[str, str] = {},
-        rpc_timeout: Optional[timedelta] = None,
-    ) -> LocalReturnType: ...
-
-    # Overload for single-param update
-    @overload
-    async def execute_update(
-        self,
-        update: temporalio.workflow.UpdateMethodMultiParam[
-            [SelfType, ParamType], LocalReturnType
-        ],
-        arg: ParamType,
-        *,
-        id: Optional[str] = None,
-        rpc_metadata: Mapping[str, str] = {},
-        rpc_timeout: Optional[timedelta] = None,
-    ) -> LocalReturnType: ...
-
-    # Overload for multi-param update
-    @overload
-    async def execute_update(
-        self,
-        update: temporalio.workflow.UpdateMethodMultiParam[
-            MultiParamSpec, LocalReturnType
-        ],
-        *,
-        args: MultiParamSpec.args,  # pyright: ignore
-        id: Optional[str] = None,
-        rpc_metadata: Mapping[str, str] = {},
-        rpc_timeout: Optional[timedelta] = None,
-    ) -> LocalReturnType: ...
-
-    # Overload for string-name update
-    @overload
-    async def execute_update(
-        self,
-        update: str,
-        arg: Any = temporalio.common._arg_unset,
-        *,
-        args: Sequence[Any] = [],
-        id: Optional[str] = None,
-        result_type: Optional[Type] = None,
-        rpc_metadata: Mapping[str, str] = {},
-        rpc_timeout: Optional[timedelta] = None,
-    ) -> Any: ...
-
-    # Overload for no-param start update
-    @overload
-    async def start_update(
-        self,
-        update: temporalio.workflow.UpdateMethodMultiParam[[SelfType], LocalReturnType],
-        *,
-        wait_for_stage: WorkflowUpdateStage,
-        id: Optional[str] = None,
-        rpc_metadata: Mapping[str, str] = {},
-        rpc_timeout: Optional[timedelta] = None,
-    ) -> WorkflowUpdateHandle[LocalReturnType]: ...
-
-    # Overload for single-param start update
-    @overload
-    async def start_update(
-        self,
-        update: temporalio.workflow.UpdateMethodMultiParam[
-            [SelfType, ParamType], LocalReturnType
-        ],
-        arg: ParamType,
-        *,
-        wait_for_stage: WorkflowUpdateStage,
-        id: Optional[str] = None,
-        rpc_metadata: Mapping[str, str] = {},
-        rpc_timeout: Optional[timedelta] = None,
-    ) -> WorkflowUpdateHandle[LocalReturnType]: ...
-
-    # Overload for multi-param start update
-    @overload
-    async def start_update(
-        self,
-        update: temporalio.workflow.UpdateMethodMultiParam[
-            MultiParamSpec, LocalReturnType
-        ],
-        *,
-        args: MultiParamSpec.args,  # pyright: ignore
-        wait_for_stage: WorkflowUpdateStage,
-        id: Optional[str] = None,
-        rpc_metadata: Mapping[str, str] = {},
-        rpc_timeout: Optional[timedelta] = None,
-    ) -> WorkflowUpdateHandle[LocalReturnType]: ...
-
-    # Overload for string-name start update
-    @overload
-    async def start_update(
-        self,
-        update: str,
-        arg: Any = temporalio.common._arg_unset,
-        *,
-        wait_for_stage: WorkflowUpdateStage,
-        args: Sequence[Any] = [],
-        id: Optional[str] = None,
-        result_type: Optional[Type] = None,
-        rpc_metadata: Mapping[str, str] = {},
-        rpc_timeout: Optional[timedelta] = None,
-    ) -> WorkflowUpdateHandle[Any]: ...
-
-
 class WorkflowHandle(Generic[SelfType, ReturnType]):
     """Handle for interacting with a workflow.
 
@@ -2436,6 +2306,136 @@ class WorkflowHandle(Generic[SelfType, ReturnType]):
         return self.get_update_handle(
             id, workflow_run_id=workflow_run_id, result_type=update._defn.ret_type
         )
+
+
+class WithStartWorkflowHandle(Protocol[SelfType, ReturnType]):
+    """
+    Handle for issuing Update-With-Start requests. Usually created by
+    :py:meth:`Client.with_start_workflow`.
+    """
+
+    # TODO: an update issued on this handle should set runID on the handle and this should be set
+    # as first_execution_run_id in the handle returned by get_workflow_handle.
+
+    # TODO: I am tentatively proposing that we do not expose result() directly on
+    # WithStartWorkflowHandle, since users are expected to use it to call execute_update (or
+    # perhaps start_update). Instead they can obtain a WorkflowHandle via the following method.
+    # That means making it into a concrete class; perhaps use an Updateable interface to share code
+    # with WorkflowHandle. def get_workflow_handle(self) -> WorkflowHandle[SelfType, ReturnType]:
+    #     return cast(WorkflowHandle[SelfType, ReturnType], self)
+
+    # TODO: the execute_update and start_update overloads are identical to those on WorkflowHandle.
+    # Consider sharing code, e.g. via an "Updateable" interface.
+
+    # Overload for no-param update
+    @overload
+    async def execute_update(
+        self,
+        update: temporalio.workflow.UpdateMethodMultiParam[[SelfType], LocalReturnType],
+        *,
+        id: Optional[str] = None,
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+    ) -> LocalReturnType: ...
+
+    # Overload for single-param update
+    @overload
+    async def execute_update(
+        self,
+        update: temporalio.workflow.UpdateMethodMultiParam[
+            [SelfType, ParamType], LocalReturnType
+        ],
+        arg: ParamType,
+        *,
+        id: Optional[str] = None,
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+    ) -> LocalReturnType: ...
+
+    # Overload for multi-param update
+    @overload
+    async def execute_update(
+        self,
+        update: temporalio.workflow.UpdateMethodMultiParam[
+            MultiParamSpec, LocalReturnType
+        ],
+        *,
+        args: MultiParamSpec.args,  # pyright: ignore
+        id: Optional[str] = None,
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+    ) -> LocalReturnType: ...
+
+    # Overload for string-name update
+    @overload
+    async def execute_update(
+        self,
+        update: str,
+        arg: Any = temporalio.common._arg_unset,
+        *,
+        args: Sequence[Any] = [],
+        id: Optional[str] = None,
+        result_type: Optional[Type] = None,
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+    ) -> Any: ...
+
+    # Overload for no-param start update
+    @overload
+    async def start_update(
+        self,
+        update: temporalio.workflow.UpdateMethodMultiParam[[SelfType], LocalReturnType],
+        *,
+        wait_for_stage: WorkflowUpdateStage,
+        id: Optional[str] = None,
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+    ) -> WorkflowUpdateHandle[LocalReturnType]: ...
+
+    # Overload for single-param start update
+    @overload
+    async def start_update(
+        self,
+        update: temporalio.workflow.UpdateMethodMultiParam[
+            [SelfType, ParamType], LocalReturnType
+        ],
+        arg: ParamType,
+        *,
+        wait_for_stage: WorkflowUpdateStage,
+        id: Optional[str] = None,
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+    ) -> WorkflowUpdateHandle[LocalReturnType]: ...
+
+    # Overload for multi-param start update
+    @overload
+    async def start_update(
+        self,
+        update: temporalio.workflow.UpdateMethodMultiParam[
+            MultiParamSpec, LocalReturnType
+        ],
+        *,
+        args: MultiParamSpec.args,  # pyright: ignore
+        wait_for_stage: WorkflowUpdateStage,
+        id: Optional[str] = None,
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+    ) -> WorkflowUpdateHandle[LocalReturnType]: ...
+
+    # Overload for string-name start update
+    @overload
+    async def start_update(
+        self,
+        update: str,
+        arg: Any = temporalio.common._arg_unset,
+        *,
+        wait_for_stage: WorkflowUpdateStage,
+        args: Sequence[Any] = [],
+        id: Optional[str] = None,
+        result_type: Optional[Type] = None,
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+    ) -> WorkflowUpdateHandle[Any]: ...
 
 
 @dataclass(frozen=True)
