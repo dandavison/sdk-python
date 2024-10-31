@@ -1378,7 +1378,7 @@ class WorkflowHandle(Generic[SelfType, ReturnType]):
         self._first_execution_run_id = first_execution_run_id
         self._result_type = result_type
         self.__temporal_eagerly_started = False
-        self.start_workflow_input = start_workflow_input
+        self._start_workflow_input = start_workflow_input
 
     @property
     def id(self) -> str:
@@ -2241,7 +2241,7 @@ class WorkflowHandle(Generic[SelfType, ReturnType]):
                 rpc_metadata=rpc_metadata,
                 rpc_timeout=rpc_timeout,
                 wait_for_stage=wait_for_stage,
-                start_workflow_input=self.start_workflow_input,
+                start_workflow_input=self._start_workflow_input,
             )
         )
 
