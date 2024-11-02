@@ -11,6 +11,7 @@ import re
 import uuid
 import warnings
 from abc import ABC, abstractmethod
+from asyncio import Future
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum, IntEnum
@@ -2322,7 +2323,7 @@ class WithStartWorkflowHandle(Generic[SelfType, ReturnType]):
         """Create workflow handle."""
         self._client = client
         self._id = id
-        self._first_execution_run_id = None
+        self._first_execution_run_id: Future[str] = Future()
         self._start_workflow_input = start_workflow_input
         # TODO: any of these needed here?
         # self._run_id = None
@@ -2330,21 +2331,17 @@ class WithStartWorkflowHandle(Generic[SelfType, ReturnType]):
         # self._result_type = None
         # self.__temporal_eagerly_started = False
 
-    def get_workflow_handle(self) -> WorkflowHandle[SelfType, ReturnType]:
-        if not self._first_execution_run_id:
-            raise ValueError(
-                "Workflow not known to have been started: "
-                "To send an update-with-start request, use WithStartWorkflowHandle.execute_update "
-                "or WithStartWorkflowHandle.start_update. "
-                "Otherwise, use Client.get_workflow_handle_for to obtain a WorkflowHandle."
-            )
-        return self._get_workflow_handle()
+    async def get_workflow_handle(self) -> WorkflowHandle[SelfType, ReturnType]:
+        run_id = await self._first_execution_run_id
+        return self._get_workflow_handle(run_id)
 
-    def _get_workflow_handle(self) -> WorkflowHandle[SelfType, ReturnType]:
+    def _get_workflow_handle(
+        self, first_execution_run_id: Optional[str]
+    ) -> WorkflowHandle[SelfType, ReturnType]:
         return WorkflowHandle(
             self._client,
             self._id,
-            first_execution_run_id=self._first_execution_run_id,
+            first_execution_run_id=first_execution_run_id,
             start_workflow_input=self._start_workflow_input,
         )
 
@@ -2497,8 +2494,10 @@ class WithStartWorkflowHandle(Generic[SelfType, ReturnType]):
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
     ) -> WorkflowUpdateHandle[Any]:
+        if self._first_execution_run_id.done():
+            raise ValueError("Cannot be reused")
         # TODO: type
-        update_handle = await self._get_workflow_handle().start_update(
+        update_handle = await self._get_workflow_handle(None).start_update(
             update,  # type: ignore
             arg,
             wait_for_stage=wait_for_stage,
@@ -2508,7 +2507,8 @@ class WithStartWorkflowHandle(Generic[SelfType, ReturnType]):
             rpc_metadata=rpc_metadata,
             rpc_timeout=rpc_timeout,
         )
-        self._first_execution_run_id = update_handle.workflow_run_id
+        assert update_handle.workflow_run_id, "In Client.start_workflow_update why don't we use the run ID from the update response?"
+        self._first_execution_run_id.set_result(update_handle.workflow_run_id)
         return update_handle
 
 
@@ -5740,6 +5740,7 @@ class _ClientImpl(OutboundInterceptor):
             client=self._client,
             id=req.request.meta.update_id,
             workflow_id=input.id,
+            # TODO: Why don't we use the run ID from the update response here?
             workflow_run_id=input.run_id,
             result_type=input.ret_type,
         )

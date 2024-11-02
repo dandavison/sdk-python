@@ -194,19 +194,14 @@ class TestUpdateWithStart:
                 id_conflict_policy=id_conflict_policy,
             )
 
-            with pytest.raises(ValueError) as e:
-                with_start_handle_1.get_workflow_handle()
-            assert "workflow not known to have been started" in str(e.value).lower()
-
             # First UWS succeeds
             assert (
                 await with_start_handle_1.execute_update(update_handler, 1)
                 == "update-result-1"
             )
             assert (
-                with_start_handle_1.get_workflow_handle().first_execution_run_id
-                is not None
-            )
+                await with_start_handle_1.get_workflow_handle()
+            ).first_execution_run_id is not None
 
             # Whether a repeat UWS succeeds depends on the workflow ID conflict policy
             with_start_handle_2 = client.with_start_workflow(
@@ -216,42 +211,28 @@ class TestUpdateWithStart:
                 task_queue=self.task_queue,
                 id_conflict_policy=id_conflict_policy,
             )
-            with pytest.raises(ValueError) as e:
-                with_start_handle_2.get_workflow_handle()
-            assert "workflow not known to have been started" in str(e.value).lower()
 
             if expect_error_when_workflow_exists == ExpectErrorWhenWorkflowExists.NO:
-                assert (
-                    await with_start_handle_1.execute_update(update_handler, 12)
-                    == "update-result-12"
-                )
                 assert (
                     await with_start_handle_2.execute_update(update_handler, 21)
                     == "update-result-21"
                 )
                 assert (
-                    with_start_handle_2.get_workflow_handle().first_execution_run_id
-                    is not None
-                )
+                    await with_start_handle_2.get_workflow_handle()
+                ).first_execution_run_id is not None
             else:
-                with pytest.raises(RPCError) as e:
-                    await with_start_handle_1.execute_update(update_handler, 12)
                 with pytest.raises(RPCError) as e:
                     await with_start_handle_2.execute_update(update_handler, 21)
                 assert e.value.grpc_status.details[0].Is(
                     temporalio.api.errordetails.v1.MultiOperationExecutionFailure.DESCRIPTOR
                 )
                 assert (
-                    with_start_handle_1.get_workflow_handle().first_execution_run_id
-                    is not None
-                )
-                with pytest.raises(ValueError) as e:
-                    with_start_handle_2.get_workflow_handle()
-                assert "workflow not known to have been started" in str(e.value).lower()
+                    await with_start_handle_1.get_workflow_handle()
+                ).first_execution_run_id is not None
 
             # The workflow is still running; finish it.
 
-            wf_handle_1 = with_start_handle_1.get_workflow_handle()
+            wf_handle_1 = await with_start_handle_1.get_workflow_handle()
             await wf_handle_1.signal(WorkflowForUpdateWithStartTest.done)
             assert await wf_handle_1.result() == "workflow-result-1"
 
@@ -334,8 +315,8 @@ async def test_update_with_start_sets_first_execution_run_id(client: Client):
             wait_for_stage=WorkflowUpdateStage.COMPLETED,
         )
         assert (
-            with_start_handle_1.get_workflow_handle().first_execution_run_id is not None
-        )
+            await with_start_handle_1.get_workflow_handle()
+        ).first_execution_run_id is not None
         assert await update_handle_1.result() == "update-result-1"
 
         # Second UWS start fails because the workflow already exists
@@ -350,8 +331,6 @@ async def test_update_with_start_sets_first_execution_run_id(client: Client):
             assert e.value.grpc_status.details[0].Is(
                 temporalio.api.errordetails.v1.MultiOperationExecutionFailure.DESCRIPTOR
             )
-        with pytest.raises(ValueError) as e:
-            with_start_handle_2.get_workflow_handle()
 
         # Third UWS start succeeds, but the update fails
         with_start_handle_3 = make_with_start_handle("wid-2")
@@ -361,23 +340,19 @@ async def test_update_with_start_sets_first_execution_run_id(client: Client):
             wait_for_stage=WorkflowUpdateStage.COMPLETED,
         )
         assert (
-            with_start_handle_3.get_workflow_handle().first_execution_run_id is not None
-        )
+            await with_start_handle_3.get_workflow_handle()
+        ).first_execution_run_id is not None
         with pytest.raises(WorkflowUpdateFailedError) as e:
             await update_handle_3.result()
 
         # Despite the update failure, the first execution run ID is set on the with_start_handle,
         # and the handle can be used to obtain the workflow result.
         assert (
-            with_start_handle_3.get_workflow_handle().first_execution_run_id is not None
-        )
-        await with_start_handle_3.get_workflow_handle().signal(
-            WorkflowForUpdateWithStartTest.done
-        )
-        assert (
-            await with_start_handle_3.get_workflow_handle().result()
-            == "workflow-result-0"
-        )
+            await with_start_handle_3.get_workflow_handle()
+        ).first_execution_run_id is not None
+        wf_handle_3 = await with_start_handle_3.get_workflow_handle()
+        await wf_handle_3.signal(WorkflowForUpdateWithStartTest.done)
+        assert await wf_handle_3.result() == "workflow-result-0"
 
         # Fourth UWS is same as third, but we use execute_update instead of start_update.
         with_start_handle_4 = make_with_start_handle("wid-3")
@@ -386,19 +361,5 @@ async def test_update_with_start_sets_first_execution_run_id(client: Client):
                 WorkflowForUpdateWithStartTest.my_non_blocking_update, -1
             )
         assert (
-            with_start_handle_4.get_workflow_handle().first_execution_run_id is not None
-        )
-
-
-async def test_update_with_start_handle_does_not_give_workflow_handle_without_run_id(
-    client: Client,
-):
-    with_start_handle = client.with_start_workflow(
-        WorkflowForUpdateWithStartTest.run,
-        0,
-        id="wid",
-        id_conflict_policy=WorkflowIDConflictPolicy.FAIL,
-        task_queue="no-such-task-queue",
-    )
-    with pytest.raises(ValueError):
-        with_start_handle.get_workflow_handle()
+            await with_start_handle_4.get_workflow_handle()
+        ).first_execution_run_id is not None
