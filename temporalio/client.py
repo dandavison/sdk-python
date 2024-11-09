@@ -565,7 +565,7 @@ class Client:
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
         request_eager_start: bool = False,
-    ) -> WithStartWorkflowHandle[SelfType, ReturnType]: ...
+    ) -> WithStartWorkflowRequest[SelfType, ReturnType]: ...
 
     # Overload for single-param workflow, with_start
     @overload
@@ -596,7 +596,7 @@ class Client:
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
         request_eager_start: bool = False,
-    ) -> WithStartWorkflowHandle[SelfType, ReturnType]: ...
+    ) -> WithStartWorkflowRequest[SelfType, ReturnType]: ...
 
     # Overload for multi-param workflow, with_start
     @overload
@@ -629,7 +629,7 @@ class Client:
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
         request_eager_start: bool = False,
-    ) -> WithStartWorkflowHandle[SelfType, ReturnType]: ...
+    ) -> WithStartWorkflowRequest[SelfType, ReturnType]: ...
 
     # Overload for string-name workflow, with_start
     @overload
@@ -662,7 +662,7 @@ class Client:
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
         request_eager_start: bool = False,
-    ) -> WithStartWorkflowHandle[Any, Any]: ...
+    ) -> WithStartWorkflowRequest[Any, Any]: ...
 
     # TODO: reduce duplication with start_workflow
     def with_start_workflow(
@@ -695,7 +695,7 @@ class Client:
         rpc_timeout: Optional[timedelta] = None,
         request_eager_start: bool = False,
         stack_level: int = 2,
-    ) -> WithStartWorkflowHandle[Any, Any]:
+    ) -> WithStartWorkflowRequest[Any, Any]:
         """
         Create a handle for issuing an Update-With-Start request.
 
@@ -743,7 +743,7 @@ class Client:
             request_eager_start=request_eager_start,
         )
 
-        return WithStartWorkflowHandle(
+        return WithStartWorkflowRequest(
             self,
             id,
             start_workflow_input=input,
@@ -2311,7 +2311,7 @@ class WorkflowHandle(Generic[SelfType, ReturnType]):
         )
 
 
-class WithStartWorkflowHandle(Generic[SelfType, ReturnType]):
+class WithStartWorkflowRequest(Generic[SelfType, ReturnType]):
     """
     Handle for issuing Update-With-Start requests. Usually created by
     :py:meth:`Client.with_start_workflow`.
