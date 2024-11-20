@@ -859,9 +859,8 @@ class Client:
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
     ) -> Any:
-        # TODO: type
-        handle = await self.start_update_with_start(
-            update,  # type: ignore
+        handle = await self._start_update_with_start(
+            update,
             arg,
             args=args,
             wait_for_stage=WorkflowUpdateStage.COMPLETED,
@@ -935,6 +934,31 @@ class Client:
     ) -> WorkflowUpdateHandle[Any]: ...
 
     async def start_update_with_start(
+        self,
+        update: Union[str, Callable],
+        arg: Any = temporalio.common._arg_unset,
+        *,
+        wait_for_stage: WorkflowUpdateStage,
+        args: Sequence[Any] = [],
+        id: Optional[str] = None,
+        result_type: Optional[Type] = None,
+        start_workflow_operation: StartWorkflowOperation[SelfType, ReturnType],
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+    ) -> WorkflowUpdateHandle[Any]:
+        return await self._start_update_with_start(
+            update,
+            arg,
+            wait_for_stage=wait_for_stage,
+            args=args,
+            id=id,
+            result_type=result_type,
+            start_workflow_operation=start_workflow_operation,
+            rpc_metadata=rpc_metadata,
+            rpc_timeout=rpc_timeout,
+        )
+
+    async def _start_update_with_start(
         self,
         update: Union[str, Callable],
         arg: Any = temporalio.common._arg_unset,
