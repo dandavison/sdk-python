@@ -790,218 +790,6 @@ class Client:
             result_type=defn.ret_type,
         )
 
-    # Overload for no-param workflow, with_start
-    @overload
-    def create_start_workflow_operation(
-        self,
-        workflow: MethodAsyncNoParam[SelfType, ReturnType],
-        *,
-        id: str,
-        task_queue: str,
-        id_conflict_policy: temporalio.common.WorkflowIDConflictPolicy,
-        execution_timeout: Optional[timedelta] = None,
-        run_timeout: Optional[timedelta] = None,
-        task_timeout: Optional[timedelta] = None,
-        id_reuse_policy: temporalio.common.WorkflowIDReusePolicy = temporalio.common.WorkflowIDReusePolicy.ALLOW_DUPLICATE,
-        retry_policy: Optional[temporalio.common.RetryPolicy] = None,
-        cron_schedule: str = "",
-        memo: Optional[Mapping[str, Any]] = None,
-        search_attributes: Optional[
-            Union[
-                temporalio.common.TypedSearchAttributes,
-                temporalio.common.SearchAttributes,
-            ]
-        ] = None,
-        start_delay: Optional[timedelta] = None,
-        start_signal: Optional[str] = None,
-        start_signal_args: Sequence[Any] = [],
-        rpc_metadata: Mapping[str, str] = {},
-        rpc_timeout: Optional[timedelta] = None,
-        request_eager_start: bool = False,
-    ) -> StartWorkflowOperation[SelfType, ReturnType]: ...
-
-    # Overload for single-param workflow, with_start
-    @overload
-    def create_start_workflow_operation(
-        self,
-        workflow: MethodAsyncSingleParam[SelfType, ParamType, ReturnType],
-        arg: ParamType,
-        *,
-        id: str,
-        task_queue: str,
-        id_conflict_policy: temporalio.common.WorkflowIDConflictPolicy,
-        execution_timeout: Optional[timedelta] = None,
-        run_timeout: Optional[timedelta] = None,
-        task_timeout: Optional[timedelta] = None,
-        id_reuse_policy: temporalio.common.WorkflowIDReusePolicy = temporalio.common.WorkflowIDReusePolicy.ALLOW_DUPLICATE,
-        retry_policy: Optional[temporalio.common.RetryPolicy] = None,
-        cron_schedule: str = "",
-        memo: Optional[Mapping[str, Any]] = None,
-        search_attributes: Optional[
-            Union[
-                temporalio.common.TypedSearchAttributes,
-                temporalio.common.SearchAttributes,
-            ]
-        ] = None,
-        start_delay: Optional[timedelta] = None,
-        start_signal: Optional[str] = None,
-        start_signal_args: Sequence[Any] = [],
-        rpc_metadata: Mapping[str, str] = {},
-        rpc_timeout: Optional[timedelta] = None,
-        request_eager_start: bool = False,
-    ) -> StartWorkflowOperation[SelfType, ReturnType]: ...
-
-    # Overload for multi-param workflow, with_start
-    @overload
-    def create_start_workflow_operation(
-        self,
-        workflow: Callable[
-            Concatenate[SelfType, MultiParamSpec], Awaitable[ReturnType]
-        ],
-        *,
-        args: Sequence[Any],
-        id: str,
-        task_queue: str,
-        id_conflict_policy: temporalio.common.WorkflowIDConflictPolicy,
-        execution_timeout: Optional[timedelta] = None,
-        run_timeout: Optional[timedelta] = None,
-        task_timeout: Optional[timedelta] = None,
-        id_reuse_policy: temporalio.common.WorkflowIDReusePolicy = temporalio.common.WorkflowIDReusePolicy.ALLOW_DUPLICATE,
-        retry_policy: Optional[temporalio.common.RetryPolicy] = None,
-        cron_schedule: str = "",
-        memo: Optional[Mapping[str, Any]] = None,
-        search_attributes: Optional[
-            Union[
-                temporalio.common.TypedSearchAttributes,
-                temporalio.common.SearchAttributes,
-            ]
-        ] = None,
-        start_delay: Optional[timedelta] = None,
-        start_signal: Optional[str] = None,
-        start_signal_args: Sequence[Any] = [],
-        rpc_metadata: Mapping[str, str] = {},
-        rpc_timeout: Optional[timedelta] = None,
-        request_eager_start: bool = False,
-    ) -> StartWorkflowOperation[SelfType, ReturnType]: ...
-
-    # Overload for string-name workflow, with_start
-    @overload
-    def create_start_workflow_operation(
-        self,
-        workflow: str,
-        arg: Any = temporalio.common._arg_unset,
-        *,
-        args: Sequence[Any] = [],
-        id: str,
-        task_queue: str,
-        id_conflict_policy: temporalio.common.WorkflowIDConflictPolicy,
-        result_type: Optional[Type] = None,
-        execution_timeout: Optional[timedelta] = None,
-        run_timeout: Optional[timedelta] = None,
-        task_timeout: Optional[timedelta] = None,
-        id_reuse_policy: temporalio.common.WorkflowIDReusePolicy = temporalio.common.WorkflowIDReusePolicy.ALLOW_DUPLICATE,
-        retry_policy: Optional[temporalio.common.RetryPolicy] = None,
-        cron_schedule: str = "",
-        memo: Optional[Mapping[str, Any]] = None,
-        search_attributes: Optional[
-            Union[
-                temporalio.common.TypedSearchAttributes,
-                temporalio.common.SearchAttributes,
-            ]
-        ] = None,
-        start_delay: Optional[timedelta] = None,
-        start_signal: Optional[str] = None,
-        start_signal_args: Sequence[Any] = [],
-        rpc_metadata: Mapping[str, str] = {},
-        rpc_timeout: Optional[timedelta] = None,
-        request_eager_start: bool = False,
-    ) -> StartWorkflowOperation[Any, Any]: ...
-
-    # TODO: reduce duplication with start_workflow
-    def create_start_workflow_operation(
-        self,
-        workflow: Union[str, Callable[..., Awaitable[Any]]],
-        arg: Any = temporalio.common._arg_unset,
-        *,
-        args: Sequence[Any] = [],
-        id: str,
-        task_queue: str,
-        id_conflict_policy: temporalio.common.WorkflowIDConflictPolicy,
-        result_type: Optional[Type] = None,
-        execution_timeout: Optional[timedelta] = None,
-        run_timeout: Optional[timedelta] = None,
-        task_timeout: Optional[timedelta] = None,
-        id_reuse_policy: temporalio.common.WorkflowIDReusePolicy = temporalio.common.WorkflowIDReusePolicy.ALLOW_DUPLICATE,
-        retry_policy: Optional[temporalio.common.RetryPolicy] = None,
-        cron_schedule: str = "",
-        memo: Optional[Mapping[str, Any]] = None,
-        search_attributes: Optional[
-            Union[
-                temporalio.common.TypedSearchAttributes,
-                temporalio.common.SearchAttributes,
-            ]
-        ] = None,
-        start_delay: Optional[timedelta] = None,
-        start_signal: Optional[str] = None,
-        start_signal_args: Sequence[Any] = [],
-        rpc_metadata: Mapping[str, str] = {},
-        rpc_timeout: Optional[timedelta] = None,
-        request_eager_start: bool = False,
-        stack_level: int = 2,
-    ) -> StartWorkflowOperation[Any, Any]:
-        """
-        Create a handle for issuing an Update-With-Start request.
-
-        Update-With-Start allows you to send an update to a workflow, while starting the workflow
-        if necessary.
-        """
-        # Use definition if callable
-        name: str
-        if isinstance(workflow, str):
-            name = workflow
-        elif callable(workflow):
-            defn = temporalio.workflow._Definition.must_from_run_fn(workflow)
-            if not defn.name:
-                raise ValueError("Cannot invoke dynamic workflow explicitly")
-            name = defn.name
-            if result_type is None:
-                result_type = defn.ret_type
-        else:
-            raise TypeError("Workflow must be a string or callable")
-        temporalio.common._warn_on_deprecated_search_attributes(
-            search_attributes, stack_level=stack_level
-        )
-
-        input = StartWorkflowInput(
-            workflow=name,
-            args=temporalio.common._arg_or_args(arg, args),
-            id=id,
-            task_queue=task_queue,
-            execution_timeout=execution_timeout,
-            run_timeout=run_timeout,
-            task_timeout=task_timeout,
-            id_reuse_policy=id_reuse_policy,
-            id_conflict_policy=id_conflict_policy,
-            retry_policy=retry_policy,
-            cron_schedule=cron_schedule,
-            memo=memo,
-            search_attributes=search_attributes,
-            start_delay=start_delay,
-            headers={},
-            start_signal=start_signal,
-            start_signal_args=start_signal_args,
-            ret_type=result_type,
-            rpc_metadata=rpc_metadata,
-            rpc_timeout=rpc_timeout,
-            request_eager_start=request_eager_start,
-        )
-
-        return StartWorkflowOperation(
-            self,
-            id,
-            start_workflow_input=input,
-        )
-
     # Overload for no-param update
     @overload
     async def execute_update_with_start(
@@ -1191,8 +979,12 @@ class Client:
         )
         # TODO
         assert update_handle.workflow_run_id, "In Client.start_workflow_update why don't we use the run ID from the update response?"
-        start_workflow_operation._first_execution_run_id.set_result(
-            update_handle.workflow_run_id
+        start_workflow_operation._workflow_handle.set_result(
+            WorkflowHandle(
+                self,
+                update_handle.workflow_id,
+                first_execution_run_id=update_handle.workflow_run_id,
+            )
         )
         return update_handle
 
@@ -2502,29 +2294,225 @@ class StartWorkflowOperation(Generic[SelfType, ReturnType]):
     Usually created by :py:meth:`Client.create_start_workflow_operation`.
     """
 
+    # Overload for no-param workflow, with_start
+    @overload
     def __init__(
         self,
-        client: Client,
+        workflow: MethodAsyncNoParam[SelfType, ReturnType],
+        *,
         id: str,
-        start_workflow_input: StartWorkflowInput,
+        task_queue: str,
+        id_conflict_policy: temporalio.common.WorkflowIDConflictPolicy,
+        execution_timeout: Optional[timedelta] = None,
+        run_timeout: Optional[timedelta] = None,
+        task_timeout: Optional[timedelta] = None,
+        id_reuse_policy: temporalio.common.WorkflowIDReusePolicy = temporalio.common.WorkflowIDReusePolicy.ALLOW_DUPLICATE,
+        retry_policy: Optional[temporalio.common.RetryPolicy] = None,
+        cron_schedule: str = "",
+        memo: Optional[Mapping[str, Any]] = None,
+        search_attributes: Optional[
+            Union[
+                temporalio.common.TypedSearchAttributes,
+                temporalio.common.SearchAttributes,
+            ]
+        ] = None,
+        start_delay: Optional[timedelta] = None,
+        start_signal: Optional[str] = None,
+        start_signal_args: Sequence[Any] = [],
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+        request_eager_start: bool = False,
+    ) -> None: ...
+
+    # Overload for single-param workflow, with_start
+    @overload
+    def __init__(
+        self,
+        workflow: MethodAsyncSingleParam[SelfType, ParamType, ReturnType],
+        arg: ParamType,
+        *,
+        id: str,
+        task_queue: str,
+        id_conflict_policy: temporalio.common.WorkflowIDConflictPolicy,
+        execution_timeout: Optional[timedelta] = None,
+        run_timeout: Optional[timedelta] = None,
+        task_timeout: Optional[timedelta] = None,
+        id_reuse_policy: temporalio.common.WorkflowIDReusePolicy = temporalio.common.WorkflowIDReusePolicy.ALLOW_DUPLICATE,
+        retry_policy: Optional[temporalio.common.RetryPolicy] = None,
+        cron_schedule: str = "",
+        memo: Optional[Mapping[str, Any]] = None,
+        search_attributes: Optional[
+            Union[
+                temporalio.common.TypedSearchAttributes,
+                temporalio.common.SearchAttributes,
+            ]
+        ] = None,
+        start_delay: Optional[timedelta] = None,
+        start_signal: Optional[str] = None,
+        start_signal_args: Sequence[Any] = [],
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+        request_eager_start: bool = False,
+    ) -> None: ...
+
+    # Overload for multi-param workflow, with_start
+    @overload
+    def __init__(
+        self,
+        workflow: Callable[
+            Concatenate[SelfType, MultiParamSpec], Awaitable[ReturnType]
+        ],
+        *,
+        args: Sequence[Any],
+        id: str,
+        task_queue: str,
+        id_conflict_policy: temporalio.common.WorkflowIDConflictPolicy,
+        execution_timeout: Optional[timedelta] = None,
+        run_timeout: Optional[timedelta] = None,
+        task_timeout: Optional[timedelta] = None,
+        id_reuse_policy: temporalio.common.WorkflowIDReusePolicy = temporalio.common.WorkflowIDReusePolicy.ALLOW_DUPLICATE,
+        retry_policy: Optional[temporalio.common.RetryPolicy] = None,
+        cron_schedule: str = "",
+        memo: Optional[Mapping[str, Any]] = None,
+        search_attributes: Optional[
+            Union[
+                temporalio.common.TypedSearchAttributes,
+                temporalio.common.SearchAttributes,
+            ]
+        ] = None,
+        start_delay: Optional[timedelta] = None,
+        start_signal: Optional[str] = None,
+        start_signal_args: Sequence[Any] = [],
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+        request_eager_start: bool = False,
+    ) -> None: ...
+
+    # Overload for string-name workflow, with_start
+    @overload
+    def __init__(
+        self,
+        workflow: str,
+        arg: Any = temporalio.common._arg_unset,
+        *,
+        args: Sequence[Any] = [],
+        id: str,
+        task_queue: str,
+        id_conflict_policy: temporalio.common.WorkflowIDConflictPolicy,
+        result_type: Optional[Type] = None,
+        execution_timeout: Optional[timedelta] = None,
+        run_timeout: Optional[timedelta] = None,
+        task_timeout: Optional[timedelta] = None,
+        id_reuse_policy: temporalio.common.WorkflowIDReusePolicy = temporalio.common.WorkflowIDReusePolicy.ALLOW_DUPLICATE,
+        retry_policy: Optional[temporalio.common.RetryPolicy] = None,
+        cron_schedule: str = "",
+        memo: Optional[Mapping[str, Any]] = None,
+        search_attributes: Optional[
+            Union[
+                temporalio.common.TypedSearchAttributes,
+                temporalio.common.SearchAttributes,
+            ]
+        ] = None,
+        start_delay: Optional[timedelta] = None,
+        start_signal: Optional[str] = None,
+        start_signal_args: Sequence[Any] = [],
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+        request_eager_start: bool = False,
+    ) -> None: ...
+
+    # TODO: reduce duplication with start_workflow
+    def __init__(
+        self,
+        workflow: Union[str, Callable[..., Awaitable[Any]]],
+        arg: Any = temporalio.common._arg_unset,
+        *,
+        args: Sequence[Any] = [],
+        id: str,
+        task_queue: str,
+        id_conflict_policy: temporalio.common.WorkflowIDConflictPolicy,
+        result_type: Optional[Type] = None,
+        execution_timeout: Optional[timedelta] = None,
+        run_timeout: Optional[timedelta] = None,
+        task_timeout: Optional[timedelta] = None,
+        id_reuse_policy: temporalio.common.WorkflowIDReusePolicy = temporalio.common.WorkflowIDReusePolicy.ALLOW_DUPLICATE,
+        retry_policy: Optional[temporalio.common.RetryPolicy] = None,
+        cron_schedule: str = "",
+        memo: Optional[Mapping[str, Any]] = None,
+        search_attributes: Optional[
+            Union[
+                temporalio.common.TypedSearchAttributes,
+                temporalio.common.SearchAttributes,
+            ]
+        ] = None,
+        start_delay: Optional[timedelta] = None,
+        start_signal: Optional[str] = None,
+        start_signal_args: Sequence[Any] = [],
+        rpc_metadata: Mapping[str, str] = {},
+        rpc_timeout: Optional[timedelta] = None,
+        request_eager_start: bool = False,
+        stack_level: int = 2,
     ) -> None:
-        self._client = client
+        """
+        Create a handle for issuing an Update-With-Start request.
+
+        Update-With-Start allows you to send an update to a workflow, while starting the workflow
+        if necessary.
+        """
+
+        # TODO: avoid duplicating this?
+
+        # Use definition if callable
+        name: str
+        if isinstance(workflow, str):
+            name = workflow
+        elif callable(workflow):
+            defn = temporalio.workflow._Definition.must_from_run_fn(workflow)
+            if not defn.name:
+                raise ValueError("Cannot invoke dynamic workflow explicitly")
+            name = defn.name
+            if result_type is None:
+                result_type = defn.ret_type
+        else:
+            raise TypeError("Workflow must be a string or callable")
+        temporalio.common._warn_on_deprecated_search_attributes(
+            search_attributes, stack_level=stack_level
+        )
+
         self._id = id
-        self._first_execution_run_id: Future[str] = Future()
-        self._start_workflow_input = start_workflow_input
+        self._workflow_handle: Future[WorkflowHandle[SelfType, ReturnType]] = Future()
+        self._start_workflow_input = StartWorkflowInput(
+            workflow=name,
+            args=temporalio.common._arg_or_args(arg, args),
+            id=id,
+            task_queue=task_queue,
+            execution_timeout=execution_timeout,
+            run_timeout=run_timeout,
+            task_timeout=task_timeout,
+            id_reuse_policy=id_reuse_policy,
+            id_conflict_policy=id_conflict_policy,
+            retry_policy=retry_policy,
+            cron_schedule=cron_schedule,
+            memo=memo,
+            search_attributes=search_attributes,
+            start_delay=start_delay,
+            headers={},
+            start_signal=start_signal,
+            start_signal_args=start_signal_args,
+            ret_type=result_type,
+            rpc_metadata=rpc_metadata,
+            rpc_timeout=rpc_timeout,
+            request_eager_start=request_eager_start,
+        )
+
         # TODO: any of these needed here?
         # self._run_id = None
         # self._result_run_id = None
         # self._result_type = None
         # self.__temporal_eagerly_started = False
 
-    async def get_workflow_handle(self) -> WorkflowHandle[SelfType, ReturnType]:
-        run_id = await self._first_execution_run_id
-        return WorkflowHandle(
-            self._client,
-            self._id,
-            first_execution_run_id=run_id,
-        )
+    async def workflow_handle(self) -> WorkflowHandle[SelfType, ReturnType]:
+        return await self._workflow_handle
 
 
 @dataclass(frozen=True)
