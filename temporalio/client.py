@@ -5757,7 +5757,7 @@ class _ClientImpl(OutboundInterceptor):
         self, input: StartWorkflowUpdateInput
     ) -> WorkflowUpdateHandle[Any]:
         req = await self._build_update_workflow_execution_request(input)
-        # Repeatedly try to invoke start until the update reaches user-provided
+        # Repeatedly try to invoke UpdateWorkflowExecution until the update reaches user-provided
         # wait stage or is at least ACCEPTED (as of the time of this writing,
         # the user cannot specify sooner than ACCEPTED)
         resp: temporalio.api.workflowservice.v1.UpdateWorkflowExecutionResponse
@@ -5852,30 +5852,56 @@ class _ClientImpl(OutboundInterceptor):
                 ),
             ],
         )
-        multiop_response = await self._client.workflow_service.execute_multi_operation(
-            multiop_req
-        )
-        start_responses: List[
-            temporalio.api.workflowservice.v1.StartWorkflowExecutionResponse
-        ] = [
-            r.start_workflow
-            for r in multiop_response.responses
-            if r.HasField("start_workflow")
-        ]
-        update_responses: List[
-            temporalio.api.workflowservice.v1.UpdateWorkflowExecutionResponse
-        ] = [
-            r.update_workflow
-            for r in multiop_response.responses
-            if r.HasField("update_workflow")
-        ]
-        if not (len(start_responses) == 1 and len(update_responses) == 1):
-            raise RuntimeError("Invalid ExecuteMultiOperationResponse")
-        [start_response] = start_responses
-        [update_response] = update_responses
-        known_outcome = (
-            update_response.outcome if update_response.HasField("outcome") else None
-        )
+        # Repeatedly try to invoke ExecuteMultiOperation until the update
+        # reaches user-provided wait stage or is at least ACCEPTED (as of the
+        # time of this writing, the user cannot specify sooner than ACCEPTED)
+        while True:
+            try:
+                multiop_response = (
+                    await self._client.workflow_service.execute_multi_operation(
+                        multiop_req
+                    )
+                )
+            except RPCError as err:
+                if err.status in [
+                    RPCStatusCode.DEADLINE_EXCEEDED,
+                    RPCStatusCode.CANCELLED,
+                ]:
+                    raise WorkflowUpdateRPCTimeoutOrCancelledError() from err
+                else:
+                    raise
+            except asyncio.CancelledError as err:
+                raise WorkflowUpdateRPCTimeoutOrCancelledError() from err
+
+            start_responses: List[
+                temporalio.api.workflowservice.v1.StartWorkflowExecutionResponse
+            ] = [
+                r.start_workflow
+                for r in multiop_response.responses
+                if r.HasField("start_workflow")
+            ]
+            update_responses: List[
+                temporalio.api.workflowservice.v1.UpdateWorkflowExecutionResponse
+            ] = [
+                r.update_workflow
+                for r in multiop_response.responses
+                if r.HasField("update_workflow")
+            ]
+            if not (len(start_responses) == 1 and len(update_responses) == 1):
+                raise RuntimeError("Invalid ExecuteMultiOperationResponse")
+            [start_response] = start_responses
+            [update_response] = update_responses
+            known_outcome = (
+                update_response.outcome if update_response.HasField("outcome") else None
+            )
+            if (
+                update_response.stage >= update_req.wait_policy.lifecycle_stage
+                # TODO: check this: for a wait_stage=Completed request should we continue polling here?
+                or update_response.stage
+                >= temporalio.api.enums.v1.UpdateWorkflowExecutionLifecycleStage.UPDATE_WORKFLOW_EXECUTION_LIFECYCLE_STAGE_ACCEPTED
+            ):
+                break
+
         return WorkflowUpdateHandle(
             client=self._client,
             id=update_req.request.meta.update_id,
