@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import uuid
 from contextlib import contextmanager
 from datetime import timedelta
 from enum import Enum
-from typing import Iterator
+from typing import Iterator, NoReturn
 from unittest.mock import patch
 
 import pytest
@@ -369,3 +370,41 @@ async def test_update_with_start_sets_first_execution_run_id(client: Client):
                 start_workflow_operation=start_op_4,
             )
         assert (await start_op_4.workflow_handle()).first_execution_run_id is not None
+
+
+@workflow.defn
+class NeverExecutedWorkflow:
+    @workflow.run
+    async def run(self) -> NoReturn:
+        raise NotImplementedError("This is never executed")
+
+    @workflow.update
+    async def do_update(self) -> NoReturn:
+        raise NotImplementedError("This is never executed")
+
+
+async def test_workflow_update_poll_loop(client: Client):
+    pytest.skip(
+        "It's too slow to actually do this in the test suite: retries occur every 20s"
+    )
+    start_op = StartWorkflowOperation(
+        NeverExecutedWorkflow.run,
+        id=f"wf-{uuid.uuid4()}",
+        task_queue="does-not-exist",
+        id_conflict_policy=WorkflowIDConflictPolicy.FAIL,
+    )
+    with patch.object(
+        client.workflow_service,
+        "update_workflow_execution",
+        wraps=client.workflow_service.update_workflow_execution,
+    ) as workflow_service_method:
+        try:
+            await client.execute_update_with_start(
+                NeverExecutedWorkflow.do_update,
+                start_workflow_operation=start_op,
+            )
+        except:
+            print(
+                f"update_workflow_execution was called {workflow_service_method.call_count} times"
+            )
+            raise
