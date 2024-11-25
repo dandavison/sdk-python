@@ -5862,6 +5862,8 @@ class _ClientImpl(OutboundInterceptor):
                         multiop_req
                     )
                 )
+            except asyncio.CancelledError as err:
+                raise WorkflowUpdateRPCTimeoutOrCancelledError() from err
             except RPCError as err:
                 if err.status in [
                     RPCStatusCode.DEADLINE_EXCEEDED,
@@ -5870,8 +5872,6 @@ class _ClientImpl(OutboundInterceptor):
                     raise WorkflowUpdateRPCTimeoutOrCancelledError() from err
                 else:
                     raise
-            except asyncio.CancelledError as err:
-                raise WorkflowUpdateRPCTimeoutOrCancelledError() from err
 
             start_responses: List[
                 temporalio.api.workflowservice.v1.StartWorkflowExecutionResponse
