@@ -5869,8 +5869,31 @@ class _ClientImpl(OutboundInterceptor):
                     RPCStatusCode.DEADLINE_EXCEEDED,
                     RPCStatusCode.CANCELLED,
                 ]:
+                    # TODO: but it could be the workflow start that timed out
                     raise WorkflowUpdateRPCTimeoutOrCancelledError() from err
+                # TODO: In addition to ctx.Err(), Go checks for
+                # serviceerror.cancelled and serviceerror.deadline_exceeded
                 else:
+                    multiop_failure = (
+                        temporalio.api.errordetails.v1.MultiOperationExecutionFailure()
+                    )
+                    if err.grpc_status.details[0].Unpack(multiop_failure):
+                        failure = next(
+                            (
+                                st
+                                for st in multiop_failure.statuses
+                                if not st.details[0].Is(
+                                    temporalio.api.failure.v1.MultiOperationExecutionAborted.DESCRIPTOR
+                                )
+                            ),
+                            None,
+                        )
+                        if failure and failure.code in RPCStatusCode:
+                            raise RPCError(
+                                failure.message,
+                                RPCStatusCode(failure.code),
+                                err.raw_grpc_status,
+                            )
                     raise
 
             start_responses: List[
