@@ -383,6 +383,46 @@ class NeverExecutedWorkflow:
         raise NotImplementedError("This is never executed")
 
 
+async def test_update_with_start_rpc_error(client: Client):
+    async with new_worker(
+        client,
+        WorkflowForUpdateWithStartTest,
+    ) as worker:
+
+        def make_start_op(workflow_id: str):
+            return StartWorkflowOperation(
+                WorkflowForUpdateWithStartTest.run,
+                0,
+                id=workflow_id,
+                id_conflict_policy=WorkflowIDConflictPolicy.FAIL,
+                task_queue=worker.task_queue,
+            )
+
+        wid = f"wf-{uuid.uuid4()}"
+        start_op_1 = make_start_op(wid)
+        await client.start_update_with_start(
+            WorkflowForUpdateWithStartTest.my_non_blocking_update,
+            1,
+            wait_for_stage=WorkflowUpdateStage.COMPLETED,
+            start_workflow_operation=start_op_1,
+        )
+
+        start_op_2 = make_start_op(wid)
+        try:
+            await client.start_update_with_start(
+                WorkflowForUpdateWithStartTest.my_non_blocking_update,
+                1,
+                wait_for_stage=WorkflowUpdateStage.COMPLETED,
+                start_workflow_operation=start_op_2,
+            )
+        except Exception as err:
+            print(err)
+            import pdb
+
+            pdb.set_trace()
+            print(err)
+
+
 async def test_workflow_update_poll_loop(client: Client):
     pytest.skip(
         "It's too slow to actually do this in the test suite: retries occur every 20s"
