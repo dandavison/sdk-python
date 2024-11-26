@@ -1001,7 +1001,7 @@ class Client:
         update_handle = await self._impl.start_workflow_update_with_start(
             update_input, start_workflow_operation._start_workflow_input
         )
-        # TODO
+        # TODO https://github.com/temporalio/sdk-python/issues/682
         assert update_handle.workflow_run_id, "In Client.start_workflow_update why don't we use the run ID from the update response?"
         start_workflow_operation._workflow_handle.set_result(
             WorkflowHandle(
@@ -5878,20 +5878,23 @@ class _ClientImpl(OutboundInterceptor):
                         temporalio.api.errordetails.v1.MultiOperationExecutionFailure()
                     )
                     if err.grpc_status.details[0].Unpack(multiop_failure):
-                        failure = next(
+                        status = next(
                             (
                                 st
                                 for st in multiop_failure.statuses
-                                if not st.details[0].Is(
-                                    temporalio.api.failure.v1.MultiOperationExecutionAborted.DESCRIPTOR
+                                if (
+                                    st.details
+                                    and not st.details[0].Is(
+                                        temporalio.api.failure.v1.MultiOperationExecutionAborted.DESCRIPTOR
+                                    )
                                 )
                             ),
                             None,
                         )
-                        if failure and failure.code in RPCStatusCode:
+                        if status and status.code in RPCStatusCode:
                             raise RPCError(
-                                failure.message,
-                                RPCStatusCode(failure.code),
+                                status.message,
+                                RPCStatusCode(status.code),
                                 err.raw_grpc_status,
                             )
                     raise
