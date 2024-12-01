@@ -15,7 +15,7 @@ from temporalio import activity, workflow
 from temporalio.client import (
     Client,
     RPCError,
-    StartWorkflowOperation,
+    WithStartWorkflowOperation,
     WorkflowUpdateFailedError,
     WorkflowUpdateStage,
 )
@@ -189,7 +189,7 @@ class TestUpdateWithStart:
             self.workflow_id = workflow_id
             self.task_queue = worker.task_queue
 
-            start_op_1 = StartWorkflowOperation(
+            start_op_1 = WithStartWorkflowOperation(
                 WorkflowForUpdateWithStartTest.run,
                 1,
                 id=self.workflow_id,
@@ -209,7 +209,7 @@ class TestUpdateWithStart:
             ).first_execution_run_id is not None
 
             # Whether a repeat UWS succeeds depends on the workflow ID conflict policy
-            start_op_2 = StartWorkflowOperation(
+            start_op_2 = WithStartWorkflowOperation(
                 WorkflowForUpdateWithStartTest.run,
                 2,
                 id=self.workflow_id,
@@ -268,7 +268,7 @@ class TestUpdateWithStart:
             self.workflow_id = workflow_id
             self.task_queue = worker.task_queue
 
-            start_op = StartWorkflowOperation(
+            start_op = WithStartWorkflowOperation(
                 WorkflowForUpdateWithStartTest.run,
                 1,
                 id=self.workflow_id,
@@ -309,7 +309,7 @@ async def test_update_with_start_sets_first_execution_run_id(client: Client):
     ) as worker:
 
         def make_start_op(workflow_id: str):
-            return StartWorkflowOperation(
+            return WithStartWorkflowOperation(
                 WorkflowForUpdateWithStartTest.run,
                 0,
                 id=workflow_id,
@@ -389,7 +389,7 @@ async def test_update_with_start_rpc_error(client: Client):
     ) as worker:
 
         def make_start_op(workflow_id: str):
-            return StartWorkflowOperation(
+            return WithStartWorkflowOperation(
                 WorkflowForUpdateWithStartTest.run,
                 0,
                 id=workflow_id,
@@ -422,7 +422,7 @@ async def test_workflow_update_poll_loop(client: Client):
     pytest.skip(
         "It's too slow to actually do this in the test suite: retries occur every 20s"
     )
-    start_op = StartWorkflowOperation(
+    start_op = WithStartWorkflowOperation(
         NeverExecutedWorkflow.run,
         id=f"wf-{uuid.uuid4()}",
         task_queue="does-not-exist",

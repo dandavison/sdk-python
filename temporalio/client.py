@@ -797,7 +797,7 @@ class Client:
         update: temporalio.workflow.UpdateMethodMultiParam[[SelfType], LocalReturnType],
         *,
         id: Optional[str] = None,
-        start_workflow_operation: StartWorkflowOperation[SelfType, ReturnType],
+        start_workflow_operation: WithStartWorkflowOperation[SelfType, ReturnType],
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
     ) -> LocalReturnType: ...
@@ -812,7 +812,7 @@ class Client:
         arg: ParamType,
         *,
         id: Optional[str] = None,
-        start_workflow_operation: StartWorkflowOperation[SelfType, ReturnType],
+        start_workflow_operation: WithStartWorkflowOperation[SelfType, ReturnType],
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
     ) -> LocalReturnType: ...
@@ -827,7 +827,7 @@ class Client:
         *,
         args: MultiParamSpec.args,  # pyright: ignore
         id: Optional[str] = None,
-        start_workflow_operation: StartWorkflowOperation[SelfType, ReturnType],
+        start_workflow_operation: WithStartWorkflowOperation[SelfType, ReturnType],
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
     ) -> LocalReturnType: ...
@@ -842,7 +842,7 @@ class Client:
         args: Sequence[Any] = [],
         id: Optional[str] = None,
         result_type: Optional[Type] = None,
-        start_workflow_operation: StartWorkflowOperation[SelfType, ReturnType],
+        start_workflow_operation: WithStartWorkflowOperation[SelfType, ReturnType],
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
     ) -> Any: ...
@@ -855,7 +855,7 @@ class Client:
         args: Sequence[Any] = [],
         id: Optional[str] = None,
         result_type: Optional[Type] = None,
-        start_workflow_operation: StartWorkflowOperation[SelfType, ReturnType],
+        start_workflow_operation: WithStartWorkflowOperation[SelfType, ReturnType],
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
     ) -> Any:
@@ -880,7 +880,7 @@ class Client:
         *,
         wait_for_stage: WorkflowUpdateStage,
         id: Optional[str] = None,
-        start_workflow_operation: StartWorkflowOperation[SelfType, ReturnType],
+        start_workflow_operation: WithStartWorkflowOperation[SelfType, ReturnType],
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
     ) -> WorkflowUpdateHandle[LocalReturnType]: ...
@@ -896,7 +896,7 @@ class Client:
         *,
         wait_for_stage: WorkflowUpdateStage,
         id: Optional[str] = None,
-        start_workflow_operation: StartWorkflowOperation[SelfType, ReturnType],
+        start_workflow_operation: WithStartWorkflowOperation[SelfType, ReturnType],
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
     ) -> WorkflowUpdateHandle[LocalReturnType]: ...
@@ -912,7 +912,7 @@ class Client:
         args: MultiParamSpec.args,  # pyright: ignore
         wait_for_stage: WorkflowUpdateStage,
         id: Optional[str] = None,
-        start_workflow_operation: StartWorkflowOperation[SelfType, ReturnType],
+        start_workflow_operation: WithStartWorkflowOperation[SelfType, ReturnType],
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
     ) -> WorkflowUpdateHandle[LocalReturnType]: ...
@@ -928,7 +928,7 @@ class Client:
         args: Sequence[Any] = [],
         id: Optional[str] = None,
         result_type: Optional[Type] = None,
-        start_workflow_operation: StartWorkflowOperation[SelfType, ReturnType],
+        start_workflow_operation: WithStartWorkflowOperation[SelfType, ReturnType],
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
     ) -> WorkflowUpdateHandle[Any]: ...
@@ -942,7 +942,7 @@ class Client:
         args: Sequence[Any] = [],
         id: Optional[str] = None,
         result_type: Optional[Type] = None,
-        start_workflow_operation: StartWorkflowOperation[SelfType, ReturnType],
+        start_workflow_operation: WithStartWorkflowOperation[SelfType, ReturnType],
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
     ) -> WorkflowUpdateHandle[Any]:
@@ -967,7 +967,7 @@ class Client:
         args: Sequence[Any] = [],
         id: Optional[str] = None,
         result_type: Optional[Type] = None,
-        start_workflow_operation: StartWorkflowOperation[SelfType, ReturnType],
+        start_workflow_operation: WithStartWorkflowOperation[SelfType, ReturnType],
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
     ) -> WorkflowUpdateHandle[Any]:
@@ -2318,7 +2318,7 @@ class WorkflowHandle(Generic[SelfType, ReturnType]):
         )
 
 
-class StartWorkflowOperation(Generic[SelfType, ReturnType]):
+class WithStartWorkflowOperation(Generic[SelfType, ReturnType]):
     """
     Defines a start-workflow operation used by update-with-start requests.
     Usually created by :py:meth:`Client.create_start_workflow_operation`.
