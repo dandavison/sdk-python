@@ -494,21 +494,11 @@ class Client:
                 already been started.
             RPCError: Workflow could not be started for some other reason.
         """
-        # Use definition if callable
-        name: str
-        if isinstance(workflow, str):
-            name = workflow
-        elif callable(workflow):
-            defn = temporalio.workflow._Definition.must_from_run_fn(workflow)
-            if not defn.name:
-                raise ValueError("Cannot invoke dynamic workflow explicitly")
-            name = defn.name
-            if result_type is None:
-                result_type = defn.ret_type
-        else:
-            raise TypeError("Workflow must be a string or callable")
         temporalio.common._warn_on_deprecated_search_attributes(
             search_attributes, stack_level=stack_level
+        )
+        name, result_type_from_run_fn = (
+            temporalio.workflow._Definition.get_name_and_result_type(workflow)
         )
 
         return await self._impl.start_workflow(
@@ -530,7 +520,7 @@ class Client:
                 headers={},
                 start_signal=start_signal,
                 start_signal_args=start_signal_args,
-                ret_type=result_type,
+                ret_type=result_type or result_type_from_run_fn,
                 rpc_metadata=rpc_metadata,
                 rpc_timeout=rpc_timeout,
                 request_eager_start=request_eager_start,
@@ -2321,7 +2311,9 @@ class WorkflowHandle(Generic[SelfType, ReturnType]):
 class WithStartWorkflowOperation(Generic[SelfType, ReturnType]):
     """
     Defines a start-workflow operation used by update-with-start requests.
-    Usually created by :py:meth:`Client.create_start_workflow_operation`.
+
+    Update-With-Start allows you to send an update to a workflow, while starting the
+    workflow if necessary.
     """
 
     # Overload for no-param workflow, with_start
@@ -2451,7 +2443,6 @@ class WithStartWorkflowOperation(Generic[SelfType, ReturnType]):
         request_eager_start: bool = False,
     ) -> None: ...
 
-    # TODO: reduce duplication with start_workflow
     def __init__(
         self,
         workflow: Union[str, Callable[..., Awaitable[Any]]],
@@ -2484,29 +2475,16 @@ class WithStartWorkflowOperation(Generic[SelfType, ReturnType]):
         stack_level: int = 2,
     ) -> None:
         """
-        Create a handle for issuing an Update-With-Start request.
+        Create a WithStartWorkflowOperation.
 
-        Update-With-Start allows you to send an update to a workflow, while starting the workflow
-        if necessary.
+        See :py:meth:`temporalio.client.Client.start_workflow` for documentation of the
+        arguments.
         """
-
-        # TODO: avoid duplicating this?
-
-        # Use definition if callable
-        name: str
-        if isinstance(workflow, str):
-            name = workflow
-        elif callable(workflow):
-            defn = temporalio.workflow._Definition.must_from_run_fn(workflow)
-            if not defn.name:
-                raise ValueError("Cannot invoke dynamic workflow explicitly")
-            name = defn.name
-            if result_type is None:
-                result_type = defn.ret_type
-        else:
-            raise TypeError("Workflow must be a string or callable")
         temporalio.common._warn_on_deprecated_search_attributes(
             search_attributes, stack_level=stack_level
+        )
+        name, result_type_from_run_fn = (
+            temporalio.workflow._Definition.get_name_and_result_type(workflow)
         )
 
         self._id = id
@@ -2529,7 +2507,7 @@ class WithStartWorkflowOperation(Generic[SelfType, ReturnType]):
             headers={},
             start_signal=start_signal,
             start_signal_args=start_signal_args,
-            ret_type=result_type,
+            ret_type=result_type or result_type_from_run_fn,
             rpc_metadata=rpc_metadata,
             rpc_timeout=rpc_timeout,
             request_eager_start=request_eager_start,
