@@ -975,9 +975,8 @@ class Client:
         else:
             update_name = str(update)
 
-        update_input = StartWorkflowUpdateInput(
+        update_input = StartWorkflowUpdateWithStartUpdateInput(
             id=start_workflow_operation._start_workflow_input.id,
-            run_id=None,
             update_id=id,
             update=update_name,
             args=temporalio.common._arg_or_args(arg, args),
@@ -988,9 +987,12 @@ class Client:
             wait_for_stage=wait_for_stage,
         )
 
-        update_handle = await self._impl.start_workflow_update_with_start(
-            update_input, start_workflow_operation._start_workflow_input
+        input = StartWorkflowUpdateWithStartInput(
+            start_workflow_input=start_workflow_operation._start_workflow_input,
+            update_workflow_input=update_input,
         )
+
+        update_handle = await self._impl.start_workflow_update_with_start(input)
         # TODO https://github.com/temporalio/sdk-python/issues/682
         assert update_handle.workflow_run_id, "In Client.start_workflow_update why don't we use the run ID from the update response?"
         start_workflow_operation._workflow_handle.set_result(
@@ -2339,11 +2341,8 @@ class WithStartWorkflowOperation(Generic[SelfType, ReturnType]):
             ]
         ] = None,
         start_delay: Optional[timedelta] = None,
-        start_signal: Optional[str] = None,
-        start_signal_args: Sequence[Any] = [],
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
-        request_eager_start: bool = False,
     ) -> None: ...
 
     # Overload for single-param workflow, with_start
@@ -2370,11 +2369,8 @@ class WithStartWorkflowOperation(Generic[SelfType, ReturnType]):
             ]
         ] = None,
         start_delay: Optional[timedelta] = None,
-        start_signal: Optional[str] = None,
-        start_signal_args: Sequence[Any] = [],
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
-        request_eager_start: bool = False,
     ) -> None: ...
 
     # Overload for multi-param workflow, with_start
@@ -2403,11 +2399,8 @@ class WithStartWorkflowOperation(Generic[SelfType, ReturnType]):
             ]
         ] = None,
         start_delay: Optional[timedelta] = None,
-        start_signal: Optional[str] = None,
-        start_signal_args: Sequence[Any] = [],
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
-        request_eager_start: bool = False,
     ) -> None: ...
 
     # Overload for string-name workflow, with_start
@@ -2436,11 +2429,8 @@ class WithStartWorkflowOperation(Generic[SelfType, ReturnType]):
             ]
         ] = None,
         start_delay: Optional[timedelta] = None,
-        start_signal: Optional[str] = None,
-        start_signal_args: Sequence[Any] = [],
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
-        request_eager_start: bool = False,
     ) -> None: ...
 
     def __init__(
@@ -2467,11 +2457,8 @@ class WithStartWorkflowOperation(Generic[SelfType, ReturnType]):
             ]
         ] = None,
         start_delay: Optional[timedelta] = None,
-        start_signal: Optional[str] = None,
-        start_signal_args: Sequence[Any] = [],
         rpc_metadata: Mapping[str, str] = {},
         rpc_timeout: Optional[timedelta] = None,
-        request_eager_start: bool = False,
         stack_level: int = 2,
     ) -> None:
         """
@@ -2489,7 +2476,7 @@ class WithStartWorkflowOperation(Generic[SelfType, ReturnType]):
 
         self._id = id
         self._workflow_handle: Future[WorkflowHandle[SelfType, ReturnType]] = Future()
-        self._start_workflow_input = StartWorkflowInput(
+        self._start_workflow_input = StartWorkflowUpdateWithStartStartWorkflowInput(
             workflow=name,
             args=temporalio.common._arg_or_args(arg, args),
             id=id,
@@ -2505,12 +2492,9 @@ class WithStartWorkflowOperation(Generic[SelfType, ReturnType]):
             search_attributes=search_attributes,
             start_delay=start_delay,
             headers={},
-            start_signal=start_signal,
-            start_signal_args=start_signal_args,
             ret_type=result_type or result_type_from_run_fn,
             rpc_metadata=rpc_metadata,
             rpc_timeout=rpc_timeout,
-            request_eager_start=request_eager_start,
         )
 
         # TODO: any of these needed here?
@@ -5089,6 +5073,62 @@ class StartWorkflowUpdateInput:
 
 
 @dataclass
+class StartWorkflowUpdateWithStartUpdateInput:
+    """Update input for :py:meth:`OutboundInterceptor.start_workflow_update_with_start`."""
+
+    id: str
+    update_id: Optional[str]
+    update: str
+    args: Sequence[Any]
+    wait_for_stage: WorkflowUpdateStage
+    headers: Mapping[str, temporalio.api.common.v1.Payload]
+    ret_type: Optional[Type]
+    rpc_metadata: Mapping[str, str]
+    rpc_timeout: Optional[timedelta]
+
+
+# TODO: name
+@dataclass
+class StartWorkflowUpdateWithStartStartWorkflowInput:
+    """StartWorkflow input for :py:meth:`OutboundInterceptor.start_workflow_update_with_start`."""
+
+    # Similar to StartWorkflowInput but without e.g. run_id, start_signal,
+    # start_signal_args, request_eager_start.
+
+    workflow: str
+    args: Sequence[Any]
+    id: str
+    task_queue: str
+    execution_timeout: Optional[timedelta]
+    run_timeout: Optional[timedelta]
+    task_timeout: Optional[timedelta]
+    id_reuse_policy: temporalio.common.WorkflowIDReusePolicy
+    id_conflict_policy: temporalio.common.WorkflowIDConflictPolicy
+    retry_policy: Optional[temporalio.common.RetryPolicy]
+    cron_schedule: str
+    memo: Optional[Mapping[str, Any]]
+    search_attributes: Optional[
+        Union[
+            temporalio.common.SearchAttributes, temporalio.common.TypedSearchAttributes
+        ]
+    ]
+    start_delay: Optional[timedelta]
+    headers: Mapping[str, temporalio.api.common.v1.Payload]
+    # Type may be absent
+    ret_type: Optional[Type]
+    rpc_metadata: Mapping[str, str]
+    rpc_timeout: Optional[timedelta]
+
+
+@dataclass
+class StartWorkflowUpdateWithStartInput:
+    """Input for :py:meth:`OutboundInterceptor.start_workflow_update_with_start`."""
+
+    update_workflow_input: StartWorkflowUpdateWithStartUpdateInput
+    start_workflow_input: StartWorkflowUpdateWithStartStartWorkflowInput
+
+
+@dataclass
 class HeartbeatAsyncActivityInput:
     """Input for :py:meth:`OutboundInterceptor.heartbeat_async_activity`."""
 
@@ -5350,15 +5390,11 @@ class OutboundInterceptor:
         return await self.next.start_workflow_update(input)
 
     async def start_workflow_update_with_start(
-        self,
-        update_input: StartWorkflowUpdateInput,
-        start_input: StartWorkflowInput,
+        self, input: StartWorkflowUpdateWithStartInput
     ) -> WorkflowUpdateHandle[Any]:
         """Called for every :py:meth:`Client.start_update_with_start` and
         :py:meth:`Client.execute_update_with_start` call."""
-        return await self.next.start_workflow_update_with_start(
-            update_input, start_input
-        )
+        return await self.next.start_workflow_update_with_start(input)
 
     ### Async activity calls
 
@@ -5511,9 +5547,7 @@ class _ClientImpl(OutboundInterceptor):
     ) -> temporalio.api.workflowservice.v1.StartWorkflowExecutionRequest:
         req = temporalio.api.workflowservice.v1.StartWorkflowExecutionRequest()
         req.request_eager_execution = input.request_eager_start
-        await self._populate_start_or_signal_with_start_workflow_execution_request(
-            req, input
-        )
+        await self._populate_start_workflow_execution_request(req, input)
         return req
 
     async def _build_signal_with_start_workflow_execution_request(
@@ -5527,18 +5561,25 @@ class _ClientImpl(OutboundInterceptor):
             req.signal_input.payloads.extend(
                 await self._client.data_converter.encode(input.start_signal_args)
             )
-        await self._populate_start_or_signal_with_start_workflow_execution_request(
-            req, input
-        )
+        await self._populate_start_workflow_execution_request(req, input)
         return req
 
-    async def _populate_start_or_signal_with_start_workflow_execution_request(
+    async def _build_update_with_start_start_workflow_execution_request(
+        self, input: StartWorkflowUpdateWithStartStartWorkflowInput
+    ) -> temporalio.api.workflowservice.v1.StartWorkflowExecutionRequest:
+        req = temporalio.api.workflowservice.v1.StartWorkflowExecutionRequest()
+        await self._populate_start_workflow_execution_request(req, input)
+        return req
+
+    async def _populate_start_workflow_execution_request(
         self,
         req: Union[
             temporalio.api.workflowservice.v1.StartWorkflowExecutionRequest,
             temporalio.api.workflowservice.v1.SignalWithStartWorkflowExecutionRequest,
         ],
-        input: StartWorkflowInput,
+        input: Union[
+            StartWorkflowInput, StartWorkflowUpdateWithStartStartWorkflowInput
+        ],
     ) -> None:
         req.namespace = self._client.namespace
         req.workflow_id = input.id
@@ -5780,13 +5821,15 @@ class _ClientImpl(OutboundInterceptor):
         return handle
 
     async def _build_update_workflow_execution_request(
-        self, input: StartWorkflowUpdateInput
+        self,
+        input: Union[StartWorkflowUpdateInput, StartWorkflowUpdateWithStartUpdateInput],
     ) -> temporalio.api.workflowservice.v1.UpdateWorkflowExecutionRequest:
+        run_id = input.run_id if isinstance(input, StartWorkflowUpdateInput) else None
         req = temporalio.api.workflowservice.v1.UpdateWorkflowExecutionRequest(
             namespace=self._client.namespace,
             workflow_execution=temporalio.api.common.v1.WorkflowExecution(
                 workflow_id=input.id,
-                run_id=input.run_id or "",
+                run_id=run_id or "",
             ),
             request=temporalio.api.update.v1.Request(
                 meta=temporalio.api.update.v1.Meta(
@@ -5814,9 +5857,17 @@ class _ClientImpl(OutboundInterceptor):
         return req
 
     async def start_workflow_update_with_start(
-        self, update_input: StartWorkflowUpdateInput, start_input: StartWorkflowInput
+        self, input: StartWorkflowUpdateWithStartInput
     ) -> WorkflowUpdateHandle[Any]:
-        start_req = await self._build_start_workflow_execution_request(start_input)
+        start_input, update_input = (
+            input.start_workflow_input,
+            input.update_workflow_input,
+        )
+        start_req = (
+            await self._build_update_with_start_start_workflow_execution_request(
+                start_input
+            )
+        )
         update_req = await self._build_update_workflow_execution_request(update_input)
         multiop_req = temporalio.api.workflowservice.v1.ExecuteMultiOperationRequest(
             namespace=self._client.namespace,
