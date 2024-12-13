@@ -5758,8 +5758,7 @@ class _ClientImpl(OutboundInterceptor):
             except asyncio.CancelledError as err:
                 raise WorkflowUpdateRPCTimeoutOrCancelledError() from err
             if (
-                resp.stage >= req.wait_policy.lifecycle_stage
-                or resp.stage
+                resp.stage
                 >= temporalio.api.enums.v1.UpdateWorkflowExecutionLifecycleStage.UPDATE_WORKFLOW_EXECUTION_LIFECYCLE_STAGE_ACCEPTED
             ):
                 break
@@ -5899,9 +5898,7 @@ class _ClientImpl(OutboundInterceptor):
                 update_response.outcome if update_response.HasField("outcome") else None
             )
             if (
-                update_response.stage >= update_req.wait_policy.lifecycle_stage
-                # TODO: check this: for a wait_stage=Completed request should we continue polling here?
-                or update_response.stage
+                update_response.stage
                 >= temporalio.api.enums.v1.UpdateWorkflowExecutionLifecycleStage.UPDATE_WORKFLOW_EXECUTION_LIFECYCLE_STAGE_ACCEPTED
             ):
                 break
